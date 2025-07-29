@@ -63,13 +63,7 @@ export default function Home() {
             } catch (error) {
                  console.error("AI book of the day failed:", error);
                  toast({ variant: 'destructive', title: "AI Error", description: "Could not fetch the Book of the Day." });
-                 const bookDetails = await generateBookOfTheDay();
-                 setBookOfTheDay({ 
-                    ...bookDetails, 
-                    coverImage: `https://placehold.co/300x450.png`,
-                    rating: Math.random() * 2 + 3,
-                    dataAiHint: `${bookDetails.genre.toLowerCase()}`
-                });
+                 // Fallback for book of the day
             } finally {
                 setIsBookOfTheDayLoading(false);
             }
@@ -206,7 +200,7 @@ export default function Home() {
         coverImage: bookOfTheDay.coverImage,
         rating: bookOfTheDay.rating,
         dataAiHint: bookOfTheDay.dataAiHint,
-    } : null;
+    } as Book : null;
 
     return (
         <div className="flex flex-col items-center min-h-screen p-4 sm:p-6 lg:p-8 overflow-x-hidden">
