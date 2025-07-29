@@ -227,7 +227,7 @@ export default function Home() {
 
     return (
         <div className="flex flex-col items-center min-h-screen p-4 sm:p-6 lg:p-8">
-            <main className="w-full max-w-5xl">
+            <main className="w-full max-w-6xl">
 
                 <section className="mb-12">
                      <Card className="bg-primary/10 border-primary/20 shadow-lg overflow-hidden">
@@ -347,43 +347,28 @@ export default function Home() {
                 <section>
                     <h2 className="text-2xl font-headline font-bold mb-4">Results</h2>
                     {isPending && results.length === 0 ? (
-                         <div className="relative">
-                            <Carousel opts={{ align: "start" }} className="w-full">
-                                <CarouselContent>
-                                    {[...Array(4)].map((_, i) => (
-                                        <CarouselItem key={i} className="basis-1/2 md:basis-1/3 lg:basis-1/4">
-                                            <div className="p-1">
-                                                <Card>
-                                                    <CardContent className="p-4 flex flex-col items-center text-center aspect-[2/3]">
-                                                        <Skeleton className="h-full w-full mb-4" />
-                                                        <Skeleton className="h-6 w-3/4 mb-2" />
-                                                        <Skeleton className="h-4 w-1/2" />
-                                                    </CardContent>
-                                                </Card>
-                                            </div>
-                                        </CarouselItem>
-                                    ))}
-                                </CarouselContent>
-                                <CarouselPrevious className="hidden sm:flex" />
-                                <CarouselNext className="hidden sm:flex" />
-                            </Carousel>
+                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                            {[...Array(8)].map((_, i) => (
+                                <Card key={i}>
+                                    <CardContent className="p-4 flex flex-col items-center text-center aspect-[2/3]">
+                                        <Skeleton className="h-full w-full mb-4" />
+                                        <Skeleton className="h-6 w-3/4 mb-2" />
+                                        <Skeleton className="h-4 w-1/2" />
+                                    </CardContent>
+                                </Card>
+                            ))}
                         </div>
                     ) : results.length > 0 ? (
-                         <div className="relative">
-                             <Carousel 
-                                 opts={{ align: "start" }}
-                                 className="w-full"
-                             >
-                                 <CarouselContent className="-ml-4">
-                                     {results.map((book) => (
-                                         <CarouselItem key={`${book.title}-${book.author}`} className="pl-4 basis-1/2 md:basis-1/3 lg:basis-1/4">
-                                              <BookCard book={book} onSelect={() => handleSelectBook(book)} />
-                                         </CarouselItem>
-                                     ))}
-                                 </CarouselContent>
-                                 <CarouselPrevious className="hidden sm:flex" />
-                                 <CarouselNext className="hidden sm:flex" />
-                             </Carousel>
+                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                             {results.map((book, index) => (
+                                <div
+                                    key={`${book.title}-${book.author}`}
+                                    className="animate-fade-in-up"
+                                    style={{ animationDelay: `${index * 100}ms` }}
+                                >
+                                    <BookCard book={book} onSelect={() => handleSelectBook(book)} />
+                                </div>
+                             ))}
                          </div>
                     ) : (
                         <p className="text-center text-muted-foreground py-10">Find your next favorite book to get started.</p>
@@ -440,3 +425,5 @@ export default function Home() {
         </div>
     );
 }
+
+    
