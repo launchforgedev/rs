@@ -97,20 +97,6 @@ export default function Home() {
         }
     }
 
-
-    const generateCoverForBook = async (book: Book, index: number) => {
-        const coverImage = await generateBookCover({ title: book.title, author: book.author, summary: book.summary });
-        if (coverImage) {
-            setResults(prevResults => {
-                const newResults = [...prevResults];
-                if (newResults[index]) {
-                    newResults[index] = { ...newResults[index], coverImage };
-                }
-                return newResults;
-            });
-        }
-    };
-
     const handleSearch = useCallback((searchParameters: string) => {
         startTransition(async () => {
             if (!searchParameters) {
@@ -119,22 +105,17 @@ export default function Home() {
             }
 
             saveToSearchHistory(searchParameters);
+            setResults([]);
 
             try {
-                setResults([]);
                 const { recommendations } = await generateBookRecommendations({ searchParameters, count: 8 });
                 
-                const initialBooks = recommendations.map(book => ({
+                const booksWithPlaceholders = recommendations.map(book => ({
                     ...book,
                     coverImage: `https://placehold.co/300x450.png`,
                     dataAiHint: `${book.genre.toLowerCase()}`
                 }));
-                setResults(initialBooks);
-
-                initialBooks.forEach((book, index) => {
-                    generateCoverForBook(book, index);
-                });
-
+                setResults(booksWithPlaceholders);
 
             } catch (error) {
                 console.error("AI search failed:", error);
@@ -171,20 +152,16 @@ export default function Home() {
 
         try {
             const { books } = await getAuthorBibliography({ author: book.author });
-            const booksWithCoversPromises = books
+            const booksWithPlaceholders = books
                 .filter(b => b.year)
-                .map(async (b) => {
-                    const coverImage = await generateBookCover({ title: b.title, author: b.author, summary: b.summary });
-                    return {
-                        ...b,
-                        coverImage: coverImage || `https://placehold.co/300x450.png`,
-                        rating: Math.random() * 2 + 3,
-                        dataAiHint: `${b.genre.toLowerCase()}`,
-                        year: b.year,
-                    };
-                });
-            const booksWithCovers = await Promise.all(booksWithCoversPromises);
-            setAuthorBibliography(booksWithCovers as BookWithYear[]);
+                .map((b) => ({
+                    ...b,
+                    coverImage: `https://placehold.co/300x450.png`,
+                    rating: Math.random() * 2 + 3,
+                    dataAiHint: `${b.genre.toLowerCase()}`,
+                    year: b.year,
+                }));
+            setAuthorBibliography(booksWithPlaceholders as BookWithYear[]);
 
         } catch (error) {
             console.error("AI author bibliography failed:", error);
@@ -456,3 +433,5 @@ export default function Home() {
         </div>
     );
 }
+
+    
