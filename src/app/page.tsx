@@ -13,7 +13,6 @@ import { useSearchParams } from 'next/navigation'
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookCard } from "@/components/book-card";
@@ -22,19 +21,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
 import { StarRating } from "@/components/star-rating";
 import { useToast } from "@/hooks/use-toast";
-import { Search, BookOpen, Users, Tag, Sparkles, BookHeart, BarChart, Users2 } from "lucide-react";
+import { Search, BookOpen, Users, Tag, Sparkles, BookHeart, BarChart, Users2, Wand2, Compass, Library } from "lucide-react";
 
 const GENRE_SUGGESTIONS = [
-    "Fiction",
-    "Science Fiction",
-    "Fantasy",
-    "Mystery",
-    "Thriller",
-    "Romance",
-    "Non-fiction",
-    "Biography",
-    "History",
-    "Self-help",
+    "Fiction", "Mystery", "Thriller", "Science Fiction", 
+    "Fantasy", "Romance", "History", "Biography", 
+    "Horror", "Self-Help", "Comedy", "Adventure"
 ];
 
 type BookOfTheDayWithCover = BookOfTheDay & { coverImage: string, rating: number, dataAiHint?: string };
@@ -42,9 +34,7 @@ type BookWithYear = Book & { year: number };
 
 export default function Home() {
     const [isPending, startTransition] = useTransition();
-    const [titleQuery, setTitleQuery] = useState("");
-    const [authorQuery, setAuthorQuery] = useState("");
-    const [genreQuery, setGenreQuery] = useState("");
+    const [searchQuery, setSearchQuery] = useState("");
     const [results, setResults] = useState<Book[]>([]);
     const [selectedBook, setSelectedBook] = useState<Book | null>(null);
     const [authorBibliography, setAuthorBibliography] = useState<BookWithYear[]>([]);
@@ -146,7 +136,7 @@ export default function Home() {
                 });
 
 
-            } catch (error) {
+            } catch (error) => {
                 console.error("AI search failed:", error);
                 toast({ variant: 'destructive', title: "AI Error", description: "Could not fetch recommendations. Please try again." });
                 setResults([]);
@@ -154,23 +144,19 @@ export default function Home() {
         });
     }, [toast]);
 
-    const handleFormSubmit = (searchType: 'title' | 'filters') => {
-        let searchParameters = "";
-        if (searchType === 'title' && titleQuery) {
-            searchParameters = titleQuery;
-        } else if (searchType === 'filters') {
-            const parts = [];
-            if (authorQuery) parts.push(`author: ${authorQuery}`);
-            if (genreQuery) parts.push(`genre: ${genreQuery}`);
-            searchParameters = parts.join(', ');
-        }
-        handleSearch(searchParameters);
+    const handleFormSubmit = () => {
+        handleSearch(searchQuery);
     };
+    
+    const handleGenreClick = (genre: string) => {
+        setSearchQuery(genre);
+        handleSearch(genre);
+    }
     
     useEffect(() => {
         const queryFromUrl = searchParams.get('q');
         if (queryFromUrl) {
-            setTitleQuery(queryFromUrl);
+            setSearchQuery(queryFromUrl);
             handleSearch(queryFromUrl);
         }
     }, [searchParams, handleSearch]);
@@ -240,11 +226,125 @@ export default function Home() {
     } : null;
 
     return (
-        <div className="flex flex-col items-center min-h-screen p-4 sm:p-6 lg:p-8">
+        <div className="flex flex-col items-center min-h-screen p-4 sm:p-6 lg:p-8 overflow-x-hidden">
             <main className="w-full max-w-6xl">
 
-                <section className="mb-12">
-                     <Card className="bg-primary/10 border-primary/20 shadow-lg overflow-hidden">
+                 <section className="text-center my-16 animate-fade-in-up">
+                    <h1 className="text-5xl md:text-7xl font-bold font-headline text-primary">
+                        Find Your Next Story
+                    </h1>
+                    <p className="mt-4 text-lg md:text-xl max-w-2xl mx-auto text-muted-foreground">
+                        Litsense uses the power of AI to provide intelligent, personalized book recommendations. Just tell us what you're in the mood for.
+                    </p>
+                     <form 
+                        onSubmit={(e) => { e.preventDefault(); handleFormSubmit(); }} 
+                        className="relative max-w-2xl mx-auto mt-8"
+                    >
+                        <Wand2 className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                        <Input
+                            type="text"
+                            placeholder="Search by title, author, genre, or a feeling..."
+                            className="w-full pl-12 pr-28 h-14 text-lg rounded-full shadow-lg focus-visible:ring-primary focus-visible:ring-2 focus-visible:ring-offset-2 transition-shadow duration-300 focus:shadow-primary/30"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                        <Button 
+                            type="submit" 
+                            disabled={isPending} 
+                            className="absolute right-2 top-1/2 -translate-y-1/2 h-11 rounded-full px-6 text-base"
+                        >
+                            {isPending ? 'Searching...' : 'Search'}
+                        </Button>
+                    </form>
+                </section>
+                
+                <section className="my-20">
+                     <div className="text-center mb-12">
+                        <h2 className="text-3xl font-bold font-headline">How It Works</h2>
+                        <p className="text-muted-foreground mt-2">Discover your next read in three simple steps.</p>
+                     </div>
+                     <div className="grid md:grid-cols-3 gap-8">
+                        <div className="text-center p-6 border border-dashed rounded-lg animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+                            <div className="flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 text-primary mx-auto mb-4">
+                                <Compass className="w-8 h-8" />
+                            </div>
+                            <h3 className="text-xl font-bold font-headline">1. Search Anything</h3>
+                            <p className="text-muted-foreground mt-2">Use simple keywords, a book title, an author, or even a feeling to start your journey.</p>
+                        </div>
+                         <div className="text-center p-6 border border-dashed rounded-lg animate-fade-in-up" style={{ animationDelay: '400ms' }}>
+                            <div className="flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 text-primary mx-auto mb-4">
+                                <Sparkles className="w-8 h-8" />
+                            </div>
+                            <h3 className="text-xl font-bold font-headline">2. AI-Powered Discovery</h3>
+                            <p className="text-muted-foreground mt-2">Our AI analyzes your query to find hidden gems and perfect matches from a world of books.</p>
+                        </div>
+                         <div className="text-center p-6 border border-dashed rounded-lg animate-fade-in-up" style={{ animationDelay: '600ms' }}>
+                            <div className="flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 text-primary mx-auto mb-4">
+                                <Library className="w-8 h-8" />
+                            </div>
+                            <h3 className="text-xl font-bold font-headline">3. Explore & Enjoy</h3>
+                            <p className="text-muted-foreground mt-2">Dive into summaries, author timelines, and find your next favorite book to read.</p>
+                        </div>
+                     </div>
+                </section>
+
+                {results.length === 0 && !isPending && (
+                <section className="my-20">
+                    <div className="text-center mb-12">
+                        <h2 className="text-3xl font-bold font-headline">...Or Explore by Genre</h2>
+                        <p className="text-muted-foreground mt-2">Click a genre to get instant recommendations.</p>
+                     </div>
+                     <div className="flex flex-wrap justify-center gap-4">
+                        {GENRE_SUGGESTIONS.map((genre, index) => (
+                             <Button 
+                                key={genre} 
+                                variant="outline"
+                                className="rounded-full px-6 py-3 text-base transition-all duration-300 hover:bg-primary hover:text-primary-foreground hover:shadow-lg hover:-translate-y-1 animate-fade-in-up"
+                                style={{ animationDelay: `${index * 50}ms` }}
+                                onClick={() => handleGenreClick(genre)}
+                            >
+                                {genre}
+                            </Button>
+                        ))}
+                     </div>
+                </section>
+                )}
+
+
+                {results.length > 0 && (
+                <section className="my-20">
+                    <h2 className="text-3xl font-headline font-bold mb-6 text-center">Your Recommendations</h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                         {results.map((book, index) => (
+                            <div
+                                key={`${book.title}-${book.author}`}
+                                className="animate-fade-in-up"
+                                style={{ animationDelay: `${index * 100}ms` }}
+                            >
+                                <BookCard book={book} onSelect={() => handleSelectBook(book)} />
+                            </div>
+                         ))}
+                     </div>
+                </section>
+                )}
+
+                 {isPending && (
+                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 my-20">
+                            {[...Array(8)].map((_, i) => (
+                                <Card key={i}>
+                                    <CardContent className="p-4 flex flex-col items-center text-center aspect-[2/3]">
+                                        <Skeleton className="h-full w-full mb-4" />
+                                        <Skeleton className="h-6 w-3/4 mb-2" />
+                                        <Skeleton className="h-4 w-1/2" />
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+                    )}
+
+
+                 <section className="my-20">
+                     <Card className="bg-primary/10 border-primary/20 shadow-lg overflow-hidden transition-all duration-300 hover:shadow-2xl hover:border-primary/40">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-3 font-headline text-2xl sm:text-3xl text-primary">
                                 <BookHeart className="w-8 h-8"/>
@@ -267,19 +367,19 @@ export default function Home() {
                                     </div>
                                 </div>
                             ) : bookOfTheDay && bookOfTheDayAsBook ? (
-                                <div className="flex flex-col md:flex-row gap-6 items-center">
+                                <div className="flex flex-col md:flex-row gap-8 items-center">
                                     <Image 
                                         src={bookOfTheDay.coverImage} 
                                         alt={`Cover of ${bookOfTheDay.title}`}
                                         width={200}
                                         height={300}
-                                        className="rounded-lg shadow-2xl object-cover w-full max-w-[200px] md:w-auto bg-muted"
+                                        className="rounded-lg shadow-2xl object-cover w-full max-w-[200px] md:w-auto bg-muted transition-transform duration-500 hover:scale-105"
                                         data-ai-hint={bookOfTheDay.dataAiHint}
                                     />
                                     <div className="flex-1">
                                         <h3 className="font-headline text-2xl sm:text-3xl font-bold">{bookOfTheDay.title}</h3>
                                         <p className="text-lg text-muted-foreground mb-2">{bookOfTheDay.author}</p>
-                                        <p className="italic text-primary mb-4">&quot;{bookOfTheDay.reason}&quot;</p>
+                                        <p className="italic text-primary mb-4 text-lg">&quot;{bookOfTheDay.reason}&quot;</p>
                                         <p className="mb-4">{bookOfTheDay.summary}</p>
                                         <Button onClick={() => handleSelectBook(bookOfTheDayAsBook)}>
                                             <BookOpen className="mr-2 h-4 w-4" />
@@ -292,101 +392,6 @@ export default function Home() {
                             )}
                         </CardContent>
                      </Card>
-                </section>
-
-
-                <Card className="mb-8 shadow-lg">
-                    <CardContent className="p-6">
-                        <Tabs defaultValue="title" className="w-full">
-                            <TabsList className="grid w-full grid-cols-2">
-                                <TabsTrigger value="title">Search by Title / Topic</TabsTrigger>
-                                <TabsTrigger value="filters">Advanced Search</TabsTrigger>
-                            </TabsList>
-                            <TabsContent value="title">
-                                <form onSubmit={(e) => { e.preventDefault(); handleFormSubmit('title'); }} className="flex flex-col sm:flex-row gap-4 mt-4">
-                                    <div className="relative flex-grow">
-                                        <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                                        <Input
-                                            type="text"
-                                            placeholder="e.g., The Great Gatsby, or books about space travel"
-                                            className="pl-10"
-                                            value={titleQuery}
-                                            onChange={(e) => setTitleQuery(e.target.value)}
-                                        />
-                                    </div>
-                                    <Button type="submit" disabled={isPending} className="w-full sm:w-auto bg-primary hover:bg-primary/90">
-                                        <Search className="mr-2 h-4 w-4" />
-                                        {isPending ? 'Searching...' : 'Search'}
-                                    </Button>
-                                </form>
-                            </TabsContent>
-                            <TabsContent value="filters">
-                                <form onSubmit={(e) => { e.preventDefault(); handleFormSubmit('filters'); }} className="space-y-4 mt-4">
-                                    <div className="flex flex-col sm:flex-row gap-4">
-                                        <div className="relative flex-grow">
-                                            <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                                            <Input
-                                                type="text"
-                                                placeholder="Author Name"
-                                                className="pl-10"
-                                                value={authorQuery}
-                                                onChange={(e) => setAuthorQuery(e.target.value)}
-                                            />
-                                        </div>
-                                        <div className="relative flex-grow">
-                                            <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                                            <Input
-                                                type="text"
-                                                placeholder="Genre"
-                                                className="pl-10"
-                                                value={genreQuery}
-                                                onChange={(e) => setGenreQuery(e.target.value)}
-                                                list="genre-suggestions"
-                                            />
-                                            <datalist id="genre-suggestions">
-                                                {GENRE_SUGGESTIONS.map(genre => <option key={genre} value={genre} />)}
-                                            </datalist>
-                                        </div>
-                                    </div>
-                                    <Button type="submit" disabled={isPending} className="w-full bg-primary hover:bg-primary/90">
-                                        <Search className="mr-2 h-4 w-4" />
-                                        {isPending ? 'Searching...' : 'Search'}
-                                    </Button>
-                                </form>
-                            </TabsContent>
-                        </Tabs>
-                    </CardContent>
-                </Card>
-
-                <section>
-                    <h2 className="text-2xl font-headline font-bold mb-4">Results</h2>
-                    {isPending && results.length === 0 ? (
-                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                            {[...Array(8)].map((_, i) => (
-                                <Card key={i}>
-                                    <CardContent className="p-4 flex flex-col items-center text-center aspect-[2/3]">
-                                        <Skeleton className="h-full w-full mb-4" />
-                                        <Skeleton className="h-6 w-3/4 mb-2" />
-                                        <Skeleton className="h-4 w-1/2" />
-                                    </CardContent>
-                                </Card>
-                            ))}
-                        </div>
-                    ) : results.length > 0 ? (
-                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                             {results.map((book, index) => (
-                                <div
-                                    key={`${book.title}-${book.author}`}
-                                    className="animate-fade-in-up"
-                                    style={{ animationDelay: `${index * 100}ms` }}
-                                >
-                                    <BookCard book={book} onSelect={() => handleSelectBook(book)} />
-                                </div>
-                             ))}
-                         </div>
-                    ) : (
-                        <p className="text-center text-muted-foreground py-10">Find your next favorite book to get started.</p>
-                    )}
                 </section>
             </main>
 
