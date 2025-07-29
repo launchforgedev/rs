@@ -16,12 +16,12 @@ export function BookCard({ book, onSelect }: BookCardProps) {
       onClick={onSelect}
     >
       <CardContent className="p-0 flex flex-col flex-grow">
-        <div className="relative w-full h-[250px] sm:h-[200px] md:h-[250px] overflow-hidden">
+        <div className="relative w-full aspect-[2/3] overflow-hidden">
            <Image
             src={book.coverImage}
             alt={`Cover of ${book.title}`}
             fill
-            sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 25vw"
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             className="object-cover bg-muted transition-transform duration-300 group-hover:scale-105"
             data-ai-hint={book.dataAiHint}
           />
@@ -30,7 +30,7 @@ export function BookCard({ book, onSelect }: BookCardProps) {
           <h3 className="font-headline font-bold text-lg truncate" title={book.title}>
             {book.title}
           </h3>
-          <p className="text-sm text-muted-foreground mb-2">{book.author}</p>
+          <p className="text-sm text-muted-foreground mb-2 truncate">{book.author}</p>
           <div className="mt-auto">
             <StarRating rating={book.rating} />
           </div>
@@ -39,5 +39,3 @@ export function BookCard({ book, onSelect }: BookCardProps) {
     </Card>
   );
 }
-
-    

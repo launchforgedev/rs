@@ -23,6 +23,7 @@ import Image from "next/image";
 import { StarRating } from "@/components/star-rating";
 import { useToast } from "@/hooks/use-toast";
 import { Search, BookOpen, Users, Tag, Sparkles, BookHeart } from "lucide-react";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 
 const GENRE_SUGGESTIONS = [
     "Fiction",
@@ -117,7 +118,7 @@ export default function Home() {
 
             try {
                 setResults([]);
-                const { recommendations } = await generateBookRecommendations({ searchParameters, count: 4 });
+                const { recommendations } = await generateBookRecommendations({ searchParameters, count: 8 });
                 
                 const initialBooks = recommendations.map(book => ({
                     ...book,
@@ -346,24 +347,44 @@ export default function Home() {
                 <section>
                     <h2 className="text-2xl font-headline font-bold mb-4">Results</h2>
                     {isPending && results.length === 0 ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                            {[...Array(4)].map((_, i) => (
-                                <Card key={i}>
-                                    <CardContent className="p-4 flex flex-col items-center text-center">
-                                        <Skeleton className="h-[225px] w-[150px] mb-4" />
-                                        <Skeleton className="h-6 w-3/4 mb-2" />
-                                        <Skeleton className="h-4 w-1/2 mb-4" />
-                                        <Skeleton className="h-4 w-3/4" />
-                                    </CardContent>
-                                </Card>
-                            ))}
+                         <div className="relative">
+                            <Carousel opts={{ align: "start" }} className="w-full">
+                                <CarouselContent>
+                                    {[...Array(4)].map((_, i) => (
+                                        <CarouselItem key={i} className="basis-1/2 md:basis-1/3 lg:basis-1/4">
+                                            <div className="p-1">
+                                                <Card>
+                                                    <CardContent className="p-4 flex flex-col items-center text-center aspect-[2/3]">
+                                                        <Skeleton className="h-full w-full mb-4" />
+                                                        <Skeleton className="h-6 w-3/4 mb-2" />
+                                                        <Skeleton className="h-4 w-1/2" />
+                                                    </CardContent>
+                                                </Card>
+                                            </div>
+                                        </CarouselItem>
+                                    ))}
+                                </CarouselContent>
+                                <CarouselPrevious className="hidden sm:flex" />
+                                <CarouselNext className="hidden sm:flex" />
+                            </Carousel>
                         </div>
                     ) : results.length > 0 ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                            {results.map((book) => (
-                                <BookCard key={`${book.title}-${book.author}`} book={book} onSelect={() => handleSelectBook(book)} />
-                            ))}
-                        </div>
+                         <div className="relative">
+                             <Carousel 
+                                 opts={{ align: "start" }}
+                                 className="w-full"
+                             >
+                                 <CarouselContent className="-ml-4">
+                                     {results.map((book) => (
+                                         <CarouselItem key={`${book.title}-${book.author}`} className="pl-4 basis-1/2 md:basis-1/3 lg:basis-1/4">
+                                              <BookCard book={book} onSelect={() => handleSelectBook(book)} />
+                                         </CarouselItem>
+                                     ))}
+                                 </CarouselContent>
+                                 <CarouselPrevious className="hidden sm:flex" />
+                                 <CarouselNext className="hidden sm:flex" />
+                             </Carousel>
+                         </div>
                     ) : (
                         <p className="text-center text-muted-foreground py-10">Find your next favorite book to get started.</p>
                     )}
