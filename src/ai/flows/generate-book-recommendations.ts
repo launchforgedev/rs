@@ -82,7 +82,7 @@ const generateBookRecommendationsFlow = ai.defineFlow(
         throw new Error('No output from prompt.');
       } catch (e: any) {
         if (e.cause?.status === 503 && retries > 0) {
-          console.log("Model is overloaded, retrying...");
+          console.log('Model is overloaded, retrying...');
           retries--;
           await new Promise(resolve => setTimeout(resolve, 2000)); // wait 2 seconds
         } else {
@@ -90,6 +90,6 @@ const generateBookRecommendationsFlow = ai.defineFlow(
         }
       }
     }
-    throw new Error("Model is overloaded, please try again later.");
+    throw new Error('Model is overloaded, please try again later.');
   }
 );
