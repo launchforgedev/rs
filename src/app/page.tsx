@@ -5,7 +5,6 @@ import { useState, useTransition, useEffect, useCallback } from "react";
 import type { Book } from "@/types";
 import { generateBookRecommendations } from "@/ai/flows/generate-book-recommendations";
 import { summarizeBook } from "@/ai/flows/summarize-book";
-import { generateBookCover } from "@/ai/flows/generate-book-cover";
 import { generateBookOfTheDay, BookOfTheDay } from "@/ai/flows/generate-book-of-the-day";
 import { getAuthorBibliography } from "@/ai/flows/get-author-bibliography";
 import { useSearchParams } from 'next/navigation'
@@ -15,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookCard } from "@/components/book-card";
+import { BookListItem } from "@/components/book-list-item";
 import { AuthorTimeline } from "@/components/author-timeline";
 import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
@@ -52,10 +51,9 @@ export default function Home() {
             setIsBookOfTheDayLoading(true);
             try {
                 const bookDetails = await generateBookOfTheDay();
-                const coverImage = await generateBookCover({ title: bookDetails.title, author: bookDetails.author, summary: bookDetails.summary });
                 setBookOfTheDay({ 
                     ...bookDetails, 
-                    coverImage: coverImage || `https://placehold.co/300x450.png`,
+                    coverImage: `https://placehold.co/300x450.png`,
                     rating: Math.random() * 2 + 3,
                     dataAiHint: `${bookDetails.genre.toLowerCase()}`
                 });
@@ -291,14 +289,14 @@ export default function Home() {
                 {results.length > 0 && (
                 <section className="my-20">
                     <h2 className="text-3xl font-headline font-bold mb-6 text-center">Your Recommendations</h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    <div className="space-y-4">
                          {results.map((book, index) => (
                             <div
                                 key={`${book.title}-${book.author}`}
                                 className="animate-fade-in-up"
                                 style={{ animationDelay: `${index * 100}ms` }}
                             >
-                                <BookCard book={book} onSelect={() => handleSelectBook(book)} />
+                                <BookListItem book={book} onSelect={() => handleSelectBook(book)} />
                             </div>
                          ))}
                      </div>
@@ -306,14 +304,17 @@ export default function Home() {
                 )}
 
                  {isPending && (
-                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 my-20">
+                         <div className="space-y-4 my-20">
                             {[...Array(8)].map((_, i) => (
-                                <Card key={i}>
-                                    <CardContent className="p-4 flex flex-col items-center text-center aspect-[2/3]">
-                                        <Skeleton className="h-full w-full mb-4" />
-                                        <Skeleton className="h-6 w-3/4 mb-2" />
-                                        <Skeleton className="h-4 w-1/2" />
-                                    </CardContent>
+                                <Card key={i} className="p-4">
+                                    <div className="flex gap-4 items-center">
+                                        <Skeleton className="h-32 w-24" />
+                                        <div className="flex-1 space-y-3">
+                                            <Skeleton className="h-6 w-3/4" />
+                                            <Skeleton className="h-4 w-1/2" />
+                                            <Skeleton className="h-10 w-full" />
+                                        </div>
+                                    </div>
                                 </Card>
                             ))}
                         </div>

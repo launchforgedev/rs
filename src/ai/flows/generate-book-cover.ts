@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -19,22 +20,8 @@ const GenerateBookCoverInputSchema = z.object({
 export type GenerateBookCoverInput = z.infer<typeof GenerateBookCoverInputSchema>;
 
 export async function generateBookCover(input: GenerateBookCoverInput): Promise<string | null> {
-    try {
-        const {media} = await ai.generate({
-            model: 'googleai/gemini-2.0-flash-preview-image-generation',
-            prompt: `Generate a visually appealing and marketable book cover for a book with the following details:
-            Title: "${input.title}"
-            Author: "${input.author}"
-            Summary: "${input.summary}"
-            
-            The cover should be artistic and representative of the book's genre and themes. Avoid using any text on the image. Focus on creating a powerful and iconic visual.`,
-            config: {
-                responseModalities: ['TEXT', 'IMAGE'],
-            },
-        });
-        return media?.url ?? null;
-    } catch (error) {
-        console.error("AI image generation failed:", error);
-        return null;
-    }
+    // Return a placeholder image to improve performance
+    return `https://placehold.co/300x450.png`;
 }
+
+    
