@@ -5,6 +5,8 @@ import { useState, useTransition, useEffect } from "react";
 import type { Book } from "@/types";
 import { generateBookRecommendations } from "@/ai/flows/generate-book-recommendations";
 import { summarizeBook } from "@/ai/flows/summarize-book";
+import { generateBookCover } from "@/ai/flows/generate-book-cover";
+
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +20,6 @@ import Image from "next/image";
 import { StarRating } from "@/components/star-rating";
 import { useToast } from "@/hooks/use-toast";
 import { Search, BookOpen, Users, Tag, Sparkles } from "lucide-react";
-import { fetchBookCover } from "@/services/google-books";
 
 const GENRE_SUGGESTIONS = [
     "Fiction",
@@ -46,10 +47,10 @@ export default function Home() {
     const [shortSummary, setShortSummary] = useState('');
     const { toast } = useToast();
 
-    const fetchCoversForBooks = async (books: Omit<Book, 'coverImage' | 'rating'>[]): Promise<Book[]> => {
+    const generateCoversForBooks = async (books: Omit<Book, 'coverImage' | 'rating'>[]): Promise<Book[]> => {
         return Promise.all(
             books.map(async (book) => {
-                const coverImage = await fetchBookCover(book.title, book.author);
+                const coverImage = await generateBookCover({ title: book.title, author: book.author, summary: book.summary });
                 return {
                     ...book,
                     coverImage: coverImage || `https://placehold.co/300x450.png`,
@@ -80,7 +81,7 @@ export default function Home() {
             try {
                 setResults([]);
                 const { recommendations } = await generateBookRecommendations({ searchParameters, count: 4 });
-                const booksWithCovers = await fetchCoversForBooks(recommendations);
+                const booksWithCovers = await generateCoversForBooks(recommendations);
                 setResults(booksWithCovers);
 
             } catch (error) {
@@ -99,7 +100,7 @@ export default function Home() {
 
         try {
             const { recommendations } = await generateBookRecommendations({ searchParameters: `a book similar to ${book.title} by ${book.author}`, count: 3 });
-            const booksWithCovers = await fetchCoversForBooks(recommendations);
+            const booksWithCovers = await generateCoversForBooks(recommendations);
             setSimilarBooks(booksWithCovers);
 
         } catch (error) {
