@@ -7,7 +7,6 @@ import { generateBookRecommendations } from "@/ai/flows/generate-book-recommenda
 import { summarizeBook } from "@/ai/flows/summarize-book";
 import { generateBookOfTheDay, BookOfTheDay } from "@/ai/flows/generate-book-of-the-day";
 import { getAuthorBibliography } from "@/ai/flows/get-author-bibliography";
-import { getBookCover } from "@/services/google-books";
 import { useSearchParams } from 'next/navigation'
 
 
@@ -53,7 +52,7 @@ export default function Home() {
             setIsBookOfTheDayLoading(true);
             try {
                 const bookDetails = await generateBookOfTheDay();
-                const coverImage = await getBookCover(bookDetails.title, bookDetails.author);
+                const coverImage = `https://placehold.co/300x450.png`;
                 setBookOfTheDay({ 
                     ...bookDetails, 
                     coverImage: coverImage,
@@ -111,7 +110,12 @@ export default function Home() {
 
             try {
                 const { recommendations } = await generateBookRecommendations({ searchParameters, count: 8 });
-                setResults(recommendations);
+                 const recommendationsWithCovers = recommendations.map(book => ({
+                    ...book,
+                    coverImage: `https://placehold.co/300x450.png`,
+                    dataAiHint: `${book.genre.toLowerCase()}`
+                }));
+                setResults(recommendationsWithCovers);
 
             } catch (error) {
                 console.error("AI search failed:", error);
@@ -140,23 +144,11 @@ export default function Home() {
 
 
     const handleSelectBook = async (book: Book) => {
-        setSelectedBook({ ...book, coverImage: '' }); // Set initial empty cover
+        setSelectedBook({ ...book, coverImage: book.coverImage || `https://placehold.co/300x450.png` });
         saveToViewedBooks(book);
         setShortSummary('');
         setAuthorBibliography([]);
         setIsAuthorBioLoading(true);
-        setIsCoverLoading(true);
-
-        try {
-            const coverImage = await getBookCover(book.title, book.author);
-            setSelectedBook(prev => prev ? { ...prev, coverImage } : null);
-        } catch (error) {
-             console.error("Google Books API failed:", error);
-             // Use placeholder if generation fails
-             setSelectedBook(prev => prev ? { ...prev, coverImage: `https://placehold.co/300x450.png` } : null);
-        } finally {
-            setIsCoverLoading(false);
-        }
 
         // Fetch author bibliography
         try {
