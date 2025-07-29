@@ -1,8 +1,16 @@
+
 'use server';
 
 export async function fetchBookCover(title: string, author: string): Promise<string | null> {
+  const apiKey = process.env.GOOGLE_BOOKS_API_KEY;
+  if (!apiKey) {
+    console.error("Google Books API key is missing.");
+    // Return a placeholder or null to avoid breaking the UI
+    return null;
+  }
+  
   const query = `intitle:${encodeURIComponent(title)}+inauthor:${encodeURIComponent(author)}`;
-  const url = `https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=1`;
+  const url = `https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=1&key=${apiKey}`;
 
   try {
     const response = await fetch(url);

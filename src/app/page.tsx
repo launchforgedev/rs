@@ -52,7 +52,7 @@ export default function Home() {
                 const coverImage = await fetchBookCover(book.title, book.author);
                 return {
                     ...book,
-                    coverImage: coverImage || `https://placehold.co/300x450?text=No+Cover`,
+                    coverImage: coverImage || `https://placehold.co/300x450.png`,
                 };
             })
         );
@@ -80,7 +80,7 @@ export default function Home() {
                 const { recommendations } = await generateBookRecommendations({ searchParameters, count: 4 });
                 const booksWithPlaceholders = recommendations.map(book => ({
                     ...book,
-                    coverImage: `https://placehold.co/300x450`,
+                    coverImage: `https://placehold.co/300x450.png`,
                     rating: Math.random() * 2 + 3, // random between 3 and 5
                     dataAiHint: `${book.genre.toLowerCase()}`
                 }));
@@ -107,7 +107,7 @@ export default function Home() {
             const { recommendations } = await generateBookRecommendations({ searchParameters: `a book similar to ${book.title} by ${book.author}`, count: 3 });
             const booksWithPlaceholders = recommendations.map(book => ({
                 ...book,
-                coverImage: `https://placehold.co/300x450`,
+                coverImage: `https://placehold.co/300x450.png`,
                 rating: Math.random() * 2 + 3,
                 dataAiHint: `${book.genre.toLowerCase()}`
             }));
