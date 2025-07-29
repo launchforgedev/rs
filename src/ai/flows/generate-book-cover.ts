@@ -19,9 +19,15 @@ const GenerateBookCoverInputSchema = z.object({
 
 export type GenerateBookCoverInput = z.infer<typeof GenerateBookCoverInputSchema>;
 
-export async function generateBookCover(input: GenerateBookCoverInput): Promise<string | null> {
-    // Return a placeholder image to improve performance
-    return `https://placehold.co/300x450.png`;
-}
 
-    
+export async function generateBookCover(input: GenerateBookCoverInput): Promise<string> {
+    const { media } = await ai.generate({
+        model: 'googleai/gemini-2.0-flash-preview-image-generation',
+        prompt: `A stunning, high-resolution, professional book cover for a book titled "${input.title}" by ${input.author}. The cover should visually represent the following summary: ${input.summary}. The design should be modern, eye-catching, and suitable for a bestseller. Avoid text on the cover itself.`,
+        config: {
+            responseModalities: ['IMAGE', 'TEXT'],
+        },
+    });
+
+    return media.url;
+}

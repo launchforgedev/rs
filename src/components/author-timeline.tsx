@@ -5,9 +5,8 @@ import type { Book } from "@/types";
 import { Card } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Skeleton } from "@/components/ui/skeleton";
-import Image from "next/image";
 
-type BookWithYear = Book & { year: number };
+type BookWithYear = Omit<Book, 'coverImage'> & { year: number };
 
 type AuthorTimelineProps = {
   books: BookWithYear[];
@@ -41,14 +40,10 @@ export function AuthorTimeline({ books, isLoading }: AuthorTimelineProps) {
         <h3 className="font-bold text-lg mb-4 font-headline">More from this Author</h3>
         <div className="space-y-4">
           <Skeleton className="h-8 w-full" />
-          <div className="grid grid-cols-3 gap-4">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="text-center">
-                <Skeleton className="h-36 w-24 mx-auto rounded-md" />
-                <Skeleton className="h-4 w-20 mx-auto mt-2" />
-                <Skeleton className="h-3 w-16 mx-auto mt-1" />
-              </div>
-            ))}
+           <div className="space-y-2">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-5/6" />
+            <Skeleton className="h-4 w-full" />
           </div>
         </div>
       </div>
@@ -78,11 +73,10 @@ export function AuthorTimeline({ books, isLoading }: AuthorTimelineProps) {
             />
         </div>
         {filteredBooks.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="space-y-2">
             {filteredBooks.map(book => (
-              <div key={`${book.title}-${book.author}`} className="text-center">
-                <Image src={book.coverImage} alt={book.title} width={100} height={150} className="mx-auto rounded-md shadow-md bg-muted object-cover h-36 w-auto" data-ai-hint={book.dataAiHint} />
-                <h4 className="text-sm font-bold mt-2 truncate" title={book.title}>{book.title}</h4>
+              <div key={`${book.title}-${book.author}`} className="text-sm p-2 rounded-md hover:bg-muted">
+                <h4 className="font-semibold truncate" title={book.title}>{book.title}</h4>
                 <p className="text-xs text-muted-foreground">{book.year}</p>
               </div>
             ))}

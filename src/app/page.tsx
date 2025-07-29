@@ -7,6 +7,7 @@ import { generateBookRecommendations } from "@/ai/flows/generate-book-recommenda
 import { summarizeBook } from "@/ai/flows/summarize-book";
 import { generateBookOfTheDay, BookOfTheDay } from "@/ai/flows/generate-book-of-the-day";
 import { getAuthorBibliography } from "@/ai/flows/get-author-bibliography";
+import { generateBookCover } from "@/ai/flows/generate-book-cover";
 import { useSearchParams } from 'next/navigation'
 
 
@@ -36,6 +37,7 @@ export default function Home() {
     const [searchQuery, setSearchQuery] = useState("");
     const [results, setResults] = useState<Book[]>([]);
     const [selectedBook, setSelectedBook] = useState<Book | null>(null);
+    const [isCoverLoading, setIsCoverLoading] = useState(false);
     const [authorBibliography, setAuthorBibliography] = useState<BookWithYear[]>([]);
     const [isAuthorBioLoading, setIsAuthorBioLoading] = useState(false);
     const [isSummaryLoading, setIsSummaryLoading] = useState(false);
@@ -107,13 +109,7 @@ export default function Home() {
 
             try {
                 const { recommendations } = await generateBookRecommendations({ searchParameters, count: 8 });
-                
-                const booksWithPlaceholders = recommendations.map(book => ({
-                    ...book,
-                    coverImage: `https://placehold.co/300x450.png`,
-                    dataAiHint: `${book.genre.toLowerCase()}`
-                }));
-                setResults(booksWithPlaceholders);
+                setResults(recommendations);
 
             } catch (error) {
                 console.error("AI search failed:", error);
@@ -146,21 +142,30 @@ export default function Home() {
         saveToViewedBooks(book);
         setShortSummary('');
         setAuthorBibliography([]);
+        setIsCoverLoading(true);
         setIsAuthorBioLoading(true);
 
+        // Generate cover image
+        try {
+            const coverImage = await generateBookCover({
+                title: book.title,
+                author: book.author,
+                summary: book.summary,
+            });
+            setSelectedBook(prev => prev ? { ...prev, coverImage } : null);
+        } catch (error) {
+             console.error("AI cover generation failed:", error);
+             // Use placeholder if generation fails
+             setSelectedBook(prev => prev ? { ...prev, coverImage: `https://placehold.co/300x450.png` } : null);
+        } finally {
+            setIsCoverLoading(false);
+        }
+
+        // Fetch author bibliography
         try {
             const { books } = await getAuthorBibliography({ author: book.author });
-            const booksWithPlaceholders = books
-                .filter(b => b.year)
-                .map((b) => ({
-                    ...b,
-                    coverImage: `https://placehold.co/300x450.png`,
-                    rating: Math.random() * 2 + 3,
-                    dataAiHint: `${b.genre.toLowerCase()}`,
-                    year: b.year,
-                }));
-            setAuthorBibliography(booksWithPlaceholders as BookWithYear[]);
-
+            const booksWithYear = books.filter(b => b.year).map(b => ({ ...b, year: b.year })) as BookWithYear[];
+            setAuthorBibliography(booksWithYear);
         } catch (error) {
             console.error("AI author bibliography failed:", error);
             toast({ variant: 'destructive', title: "AI Error", description: "Could not fetch author's other books." });
@@ -308,7 +313,6 @@ export default function Home() {
                             {[...Array(8)].map((_, i) => (
                                 <Card key={i} className="p-4">
                                     <div className="flex gap-4 items-center">
-                                        <Skeleton className="h-32 w-24" />
                                         <div className="flex-1 space-y-3">
                                             <Skeleton className="h-6 w-3/4" />
                                             <Skeleton className="h-4 w-1/2" />
@@ -382,14 +386,18 @@ export default function Home() {
                         </DialogHeader>
                         <div className="grid md:grid-cols-3 gap-6 mt-4">
                             <div className="md:col-span-1">
-                                <Image
-                                    src={selectedBook.coverImage}
-                                    alt={`Cover of ${selectedBook.title}`}
-                                    width={300}
-                                    height={450}
-                                    className="rounded-lg shadow-lg w-full bg-muted object-cover"
-                                    data-ai-hint={selectedBook.dataAiHint}
-                                />
+                                {isCoverLoading ? (
+                                    <Skeleton className="h-[450px] w-[300px] rounded-lg" />
+                                ) : (
+                                    <Image
+                                        src={selectedBook.coverImage}
+                                        alt={`Cover of ${selectedBook.title}`}
+                                        width={300}
+                                        height={450}
+                                        className="rounded-lg shadow-lg w-full bg-muted object-cover"
+                                        data-ai-hint={selectedBook.dataAiHint}
+                                    />
+                                )}
                                 <div className="mt-4 flex flex-col gap-3">
                                     <StarRating rating={selectedBook.rating} />
                                     {selectedBook.reviews && (
@@ -434,5 +442,3 @@ export default function Home() {
         </div>
     );
 }
-
-    
