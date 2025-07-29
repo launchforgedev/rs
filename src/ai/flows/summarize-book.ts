@@ -49,7 +49,21 @@ const summarizeBookFlow = ai.defineFlow(
     outputSchema: SummarizeBookOutputSchema,
   },
   async input => {
-    const {output} = await summarizeBookPrompt(input);
-    return output!;
+    let retries = 3;
+    while (retries > 0) {
+      try {
+        const {output} = await summarizeBookPrompt(input);
+        return output!;
+      } catch (e: any) {
+        if (e.cause?.status === 503 && retries > 0) {
+          console.log("Model is overloaded, retrying...");
+          retries--;
+          await new Promise(resolve => setTimeout(resolve, 2000)); // wait 2 seconds
+        } else {
+          throw e;
+        }
+      }
+    }
+    throw new Error("Model is overloaded, please try again later.");
   }
 );
