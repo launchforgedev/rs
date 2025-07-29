@@ -17,16 +17,6 @@ import { StarRating } from "@/components/star-rating";
 import { useToast } from "@/hooks/use-toast";
 import { Search, BookOpen, Users, Tag } from "lucide-react";
 
-// Mock data to ensure a good user experience as AI output can be unpredictable.
-const mockBooks: Book[] = [
-    { title: "The Midnight Library", author: "Matt Haig", genre: "Fantasy", summary: "Between life and death there is a library, and within that library, the shelves go on forever. Every book provides a chance to try another life you could have lived.", coverImage: "https://placehold.co/300x450", rating: 4.2, dataAiHint: "fantasy library" },
-    { title: "Project Hail Mary", author: "Andy Weir", genre: "Sci-Fi", summary: "Ryland Grace is the sole survivor on a desperate, last-chance mission - and if he fails, humanity and the earth itself will perish.", coverImage: "https://placehold.co/300x450", rating: 4.8, dataAiHint: "space astronaut" },
-    { title: "Klara and the Sun", author: "Kazuo Ishiguro", genre: "Sci-Fi", summary: "A story of Klara, an Artificial Friend with outstanding observational qualities, who, from her place in the store, watches carefully the behavior of those who come in to browse.", coverImage: "https://placehold.co/300x450", rating: 4.1, dataAiHint: "robot sun" },
-    { title: "The Four Winds", author: "Kristin Hannah", genre: "Historical Fiction", summary: "An epic novel of love and heroism and hope, set against the backdrop of one of America’s most defining eras—the Great Depression.", coverImage: "https://placehold.co/300x450", rating: 4.5, dataAiHint: "dust bowl" },
-    { title: "The Vanishing Half", author: "Brit Bennett", genre: "Historical Fiction", summary: "The Vignes twin sisters will always be identical. But after growing up together in a small, southern black community and running away at age sixteen, it's not just the shape of their daily lives that is different as adults, it's everything: their families, their communities, their racial identities.", coverImage: "https://placehold.co/300x450", rating: 4.4, dataAiHint: "twin sisters" },
-    { title: "The Song of Achilles", author: "Madeline Miller", genre: "Mythology", summary: "A thrilling, profoundly moving, and utterly unique retelling of the legend of Achilles and the Trojan War from the perspective of Patroclus.", coverImage: "https://placehold.co/300x450", rating: 4.7, dataAiHint: "greek mythology" },
-];
-
 export default function Home() {
     const [isPending, startTransition] = useTransition();
     const [titleQuery, setTitleQuery] = useState("");
@@ -56,15 +46,14 @@ export default function Home() {
             }
 
             try {
-                // We call the AI, but use mock data for a stable UI.
-                await generateBookRecommendations({ searchParameters, count: 4 });
-                
-                const booksWithSummaries = mockBooks.slice(0, 4).map(book => ({
+                const { recommendations } = await generateBookRecommendations({ searchParameters, count: 4 });
+                const booksWithPlaceholders = recommendations.map(book => ({
                     ...book,
-                    summary: book.summary.substring(0, 150) + '...'
+                    coverImage: `https://placehold.co/300x450`,
+                    rating: Math.random() * 2 + 3, // random between 3 and 5
+                    dataAiHint: `${book.genre.toLowerCase()}`
                 }));
-
-                setResults(booksWithSummaries.map(b => ({...b, coverImage: "https://placehold.co/300x450", rating: 4.5})));
+                setResults(booksWithPlaceholders);
             } catch (error) {
                 console.error("AI search failed:", error);
                 toast({ variant: 'destructive', title: "AI Error", description: "Could not fetch recommendations. Please try again." });
@@ -78,11 +67,14 @@ export default function Home() {
         setIsSimilarLoading(true);
         startTransition(async () => {
              try {
-                await generateBookRecommendations({ searchParameters: `a book similar to ${book.title} by ${book.author}`, count: 3 });
-                // Using mock data for similar books
-                const similar = mockBooks.filter(b => b.title !== book.title).slice(0,3);
-                
-                setSimilarBooks(similar.map(b => ({...b, coverImage: "https://placehold.co/300x450", rating: 4.5})));
+                const { recommendations } = await generateBookRecommendations({ searchParameters: `a book similar to ${book.title} by ${book.author}`, count: 3 });
+                const booksWithPlaceholders = recommendations.map(book => ({
+                    ...book,
+                    coverImage: `https://placehold.co/300x450`,
+                    rating: Math.random() * 2 + 3, // random between 3 and 5
+                    dataAiHint: `${book.genre.toLowerCase()}`
+                }));
+                setSimilarBooks(booksWithPlaceholders);
             } catch (error) {
                 console.error("AI similar books failed:", error);
                 toast({ variant: 'destructive', title: "AI Error", description: "Could not fetch similar books." });
