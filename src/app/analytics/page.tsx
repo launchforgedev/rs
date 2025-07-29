@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, PieChart, DonutChart } from '@tremor/react';
+import { BarChart, DonutChart } from '@tremor/react';
 import { BarChart2, BookOpen, ThumbsUp, Users } from "lucide-react";
 import type { Book } from "@/types";
 
