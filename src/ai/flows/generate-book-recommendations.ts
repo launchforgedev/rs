@@ -17,14 +17,24 @@ const GenerateBookRecommendationsInputSchema = z.object({
     .describe(
       'The search parameters provided by the user, such as book title, author, or genre.'
     ),
+  count: z.number().describe('The number of recommendations to generate.'),
 });
 export type GenerateBookRecommendationsInput = z.infer<
   typeof GenerateBookRecommendationsInputSchema
 >;
 
+const BookSchema = z.object({
+  title: z.string().describe('The title of the book.'),
+  author: z.string().describe('The author of the book.'),
+  genre: z.string().describe('The genre of the book.'),
+  summary: z
+    .string()
+    .describe('A short summary of the book, no more than 50 words.'),
+});
+
 const GenerateBookRecommendationsOutputSchema = z.object({
   recommendations: z
-    .string()
+    .array(BookSchema)
     .describe('A list of book recommendations based on the search parameters.'),
 });
 export type GenerateBookRecommendationsOutput = z.infer<
@@ -41,11 +51,9 @@ const prompt = ai.definePrompt({
   name: 'generateBookRecommendationsPrompt',
   input: {schema: GenerateBookRecommendationsInputSchema},
   output: {schema: GenerateBookRecommendationsOutputSchema},
-  prompt: `You are a book recommendation expert. Based on the user's search parameters, provide a list of book recommendations.
+  prompt: `You are a book recommendation expert. Based on the user's search parameters, provide a list of {{{count}}} book recommendations. For each book provide a title, author, genre and a short summary of no more than 50 words.
 
-Search Parameters: {{{searchParameters}}}
-
-Recommendations:`,
+Search Parameters: {{{searchParameters}}}`,
 });
 
 const generateBookRecommendationsFlow = ai.defineFlow(

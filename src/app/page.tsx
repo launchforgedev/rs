@@ -3,7 +3,6 @@
 import { useState, useTransition } from "react";
 import type { Book } from "@/types";
 import { generateBookRecommendations } from "@/ai/flows/generate-book-recommendations";
-import { summarizeBook } from "@/ai/flows/summarize-book";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,16 +57,14 @@ export default function Home() {
 
             try {
                 // We call the AI, but use mock data for a stable UI.
-                await generateBookRecommendations({ searchParameters });
+                await generateBookRecommendations({ searchParameters, count: 4 });
                 
-                // Simulate parsing AI output and fetching summaries
-                const booksWithSummaries = await Promise.all(
-                    mockBooks.slice(0, 4).map(async (book) => {
-                        const { shortSummary } = await summarizeBook({ title: book.title, author: book.author, summary: book.summary });
-                        return { ...book, summary: shortSummary };
-                    })
-                );
-                setResults(booksWithSummaries);
+                const booksWithSummaries = mockBooks.slice(0, 4).map(book => ({
+                    ...book,
+                    summary: book.summary.substring(0, 150) + '...'
+                }));
+
+                setResults(booksWithSummaries.map(b => ({...b, coverImage: "https://placehold.co/300x450", rating: 4.5})));
             } catch (error) {
                 console.error("AI search failed:", error);
                 toast({ variant: 'destructive', title: "AI Error", description: "Could not fetch recommendations. Please try again." });
@@ -81,16 +78,11 @@ export default function Home() {
         setIsSimilarLoading(true);
         startTransition(async () => {
              try {
-                await generateBookRecommendations({ searchParameters: `a book similar to ${book.title} by ${book.author}` });
+                await generateBookRecommendations({ searchParameters: `a book similar to ${book.title} by ${book.author}`, count: 3 });
                 // Using mock data for similar books
                 const similar = mockBooks.filter(b => b.title !== book.title).slice(0,3);
-                const booksWithSummaries = await Promise.all(
-                    similar.map(async (b) => {
-                        const { shortSummary } = await summarizeBook({ title: b.title, author: b.author, summary: b.summary });
-                        return { ...b, summary: shortSummary };
-                    })
-                );
-                setSimilarBooks(booksWithSummaries);
+                
+                setSimilarBooks(similar.map(b => ({...b, coverImage: "https://placehold.co/300x450", rating: 4.5})));
             } catch (error) {
                 console.error("AI similar books failed:", error);
                 toast({ variant: 'destructive', title: "AI Error", description: "Could not fetch similar books." });
