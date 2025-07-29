@@ -47,7 +47,20 @@ export default function Home() {
     const [shortSummary, setShortSummary] = useState('');
     const { toast } = useToast();
 
-    const generateCoversForBooks = async (books: Omit<Book, 'coverImage' | 'rating'>[]): Promise<Book[]> => {
+    const generateCoverForBook = async (book: Book, index: number) => {
+        const coverImage = await generateBookCover({ title: book.title, author: book.author, summary: book.summary });
+        if (coverImage) {
+            setResults(prevResults => {
+                const newResults = [...prevResults];
+                if (newResults[index]) {
+                    newResults[index] = { ...newResults[index], coverImage };
+                }
+                return newResults;
+            });
+        }
+    };
+    
+    const generateCoversForSimilarBooks = async (books: Omit<Book, 'coverImage' | 'rating'>[]): Promise<Book[]> => {
         return Promise.all(
             books.map(async (book) => {
                 const coverImage = await generateBookCover({ title: book.title, author: book.author, summary: book.summary });
@@ -81,8 +94,19 @@ export default function Home() {
             try {
                 setResults([]);
                 const { recommendations } = await generateBookRecommendations({ searchParameters, count: 4 });
-                const booksWithCovers = await generateCoversForBooks(recommendations);
-                setResults(booksWithCovers);
+                
+                const initialBooks = recommendations.map(book => ({
+                    ...book,
+                    coverImage: `https://placehold.co/300x450.png`,
+                    rating: Math.random() * 2 + 3, // random between 3 and 5
+                    dataAiHint: `${book.genre.toLowerCase()}`
+                }));
+                setResults(initialBooks);
+
+                initialBooks.forEach((book, index) => {
+                    generateCoverForBook(book, index);
+                });
+
 
             } catch (error) {
                 console.error("AI search failed:", error);
@@ -100,7 +124,7 @@ export default function Home() {
 
         try {
             const { recommendations } = await generateBookRecommendations({ searchParameters: `a book similar to ${book.title} by ${book.author}`, count: 3 });
-            const booksWithCovers = await generateCoversForBooks(recommendations);
+            const booksWithCovers = await generateCoversForSimilarBooks(recommendations);
             setSimilarBooks(booksWithCovers);
 
         } catch (error) {
