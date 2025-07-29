@@ -136,7 +136,7 @@ export default function Home() {
                 });
 
 
-            } catch (error) => {
+            } catch (error) {
                 console.error("AI search failed:", error);
                 toast({ variant: 'destructive', title: "AI Error", description: "Could not fetch recommendations. Please try again." });
                 setResults([]);
@@ -456,5 +456,3 @@ export default function Home() {
         </div>
     );
 }
-
-    
