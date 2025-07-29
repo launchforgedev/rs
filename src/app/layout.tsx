@@ -17,6 +17,7 @@ import { LitsenseIcon } from "@/components/icons";
 import { Home, History, Mail } from "lucide-react";
 import Link from "next/link";
 import { AppSidebar } from "@/components/app-sidebar";
+import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
   title: "Litsense",
@@ -28,6 +29,12 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const menuItems = [
+    { path: "/", label: "Home" },
+    { path: "/history", label: "History" },
+    { path: "/contact", label: "Contact" },
+  ];
+
   return (
     <html lang="en" className="dark">
       <head>
@@ -48,12 +55,21 @@ export default function RootLayout({
             <AppSidebar />
           </Sidebar>
           <SidebarInset>
-            <header className="flex items-center p-2 md:hidden sticky top-0 bg-background/80 backdrop-blur-sm z-10">
-              <SidebarTrigger />
-              <div className="flex items-center justify-center gap-2 flex-1">
+            <header className="flex items-center p-2 sticky top-0 bg-background/80 backdrop-blur-sm z-10 border-b">
+              <div className="flex items-center md:hidden">
+                <SidebarTrigger />
+              </div>
+              <div className="flex items-center justify-center md:justify-start gap-2 flex-1 md:flex-none">
                  <LitsenseIcon className="w-7 h-7 text-primary" />
                  <span className="font-headline text-2xl font-bold text-primary">Litsense</span>
               </div>
+              <nav className="hidden md:flex flex-1 justify-center items-center gap-4">
+                {menuItems.map((item) => (
+                  <Button asChild variant="link" key={item.path} className="text-foreground hover:text-primary">
+                    <Link href={item.path}>{item.label}</Link>
+                  </Button>
+                ))}
+              </nav>
             </header>
             {children}
           </SidebarInset>
