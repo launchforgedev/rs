@@ -6,6 +6,7 @@ import type { Book } from "@/types";
 import { generateBookRecommendations } from "@/ai/flows/generate-book-recommendations";
 import { summarizeBook } from "@/ai/flows/summarize-book";
 import { generateBookCover } from "@/ai/flows/generate-book-cover";
+import { generateBookOfTheDay, BookOfTheDay } from "@/ai/flows/generate-book-of-the-day";
 import { useSearchParams } from 'next/navigation'
 
 
@@ -13,13 +14,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookCard } from "@/components/book-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
 import { StarRating } from "@/components/star-rating";
 import { useToast } from "@/hooks/use-toast";
-import { Search, BookOpen, Users, Tag, Sparkles } from "lucide-react";
+import { Search, BookOpen, Users, Tag, Sparkles, BookHeart } from "lucide-react";
 
 const GENRE_SUGGESTIONS = [
     "Fiction",
@@ -34,6 +35,8 @@ const GENRE_SUGGESTIONS = [
     "Self-help",
 ];
 
+type BookOfTheDayWithCover = BookOfTheDay & { coverImage: string, rating: number, dataAiHint?: string };
+
 export default function Home() {
     const [isPending, startTransition] = useTransition();
     const [titleQuery, setTitleQuery] = useState("");
@@ -45,8 +48,34 @@ export default function Home() {
     const [isSimilarLoading, setIsSimilarLoading] = useState(false);
     const [isSummaryLoading, setIsSummaryLoading] = useState(false);
     const [shortSummary, setShortSummary] = useState('');
+    const [bookOfTheDay, setBookOfTheDay] = useState<BookOfTheDayWithCover | null>(null);
+    const [isBookOfTheDayLoading, setIsBookOfTheDayLoading] = useState(true);
+
     const { toast } = useToast();
     const searchParams = useSearchParams();
+
+    useEffect(() => {
+        const fetchBookOfTheDay = async () => {
+            setIsBookOfTheDayLoading(true);
+            try {
+                const bookDetails = await generateBookOfTheDay();
+                const coverImage = await generateBookCover({ title: bookDetails.title, author: bookDetails.author, summary: bookDetails.summary });
+                setBookOfTheDay({ 
+                    ...bookDetails, 
+                    coverImage: coverImage || `https://placehold.co/300x450.png`,
+                    rating: Math.random() * 2 + 3,
+                    dataAiHint: `${bookDetails.genre.toLowerCase()}`
+                });
+            } catch (error) {
+                 console.error("AI book of the day failed:", error);
+                 toast({ variant: 'destructive', title: "AI Error", description: "Could not fetch the Book of the Day." });
+            } finally {
+                setIsBookOfTheDayLoading(false);
+            }
+        };
+        fetchBookOfTheDay();
+    }, [toast]);
+
 
     const saveToHistory = (query: string) => {
         if (!query) return;
@@ -189,6 +218,59 @@ export default function Home() {
     return (
         <div className="flex flex-col items-center min-h-screen p-4 sm:p-6 lg:p-8">
             <main className="w-full max-w-5xl">
+
+                <section className="mb-12">
+                     <Card className="bg-primary/10 border-primary/20 shadow-lg overflow-hidden">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-3 font-headline text-2xl sm:text-3xl text-primary">
+                                <BookHeart className="w-8 h-8"/>
+                                Book of the Day
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {isBookOfTheDayLoading ? (
+                                <div className="flex flex-col md:flex-row gap-6 items-center">
+                                    <Skeleton className="w-full md:w-[200px] h-[300px] rounded-lg"/>
+                                    <div className="flex-1 space-y-4">
+                                        <Skeleton className="h-8 w-3/4" />
+                                        <Skeleton className="h-6 w-1/2" />
+                                        <Skeleton className="h-4 w-full" />
+                                        <Skeleton className="h-4 w-full" />
+                                        <Skeleton className="h-4 w-3/4" />
+                                        <div className="pt-4">
+                                          <Skeleton className="h-10 w-40" />
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : bookOfTheDay ? (
+                                <div className="flex flex-col md:flex-row gap-6 items-center">
+                                    <Image 
+                                        src={bookOfTheDay.coverImage} 
+                                        alt={`Cover of ${bookOfTheDay.title}`}
+                                        width={200}
+                                        height={300}
+                                        className="rounded-lg shadow-2xl object-cover w-full max-w-[200px] md:w-auto bg-muted"
+                                        data-ai-hint={bookOfTheDay.dataAiHint}
+                                    />
+                                    <div className="flex-1">
+                                        <h3 className="font-headline text-2xl sm:text-3xl font-bold">{bookOfTheDay.title}</h3>
+                                        <p className="text-lg text-muted-foreground mb-2">{bookOfTheDay.author}</p>
+                                        <p className="italic text-primary mb-4">&quot;{bookOfTheDay.reason}&quot;</p>
+                                        <p className="mb-4">{bookOfTheDay.summary}</p>
+                                        <Button onClick={() => handleSelectBook(bookOfTheDay)}>
+                                            <BookOpen className="mr-2 h-4 w-4" />
+                                            Learn More
+                                        </Button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <p className="text-center text-muted-foreground py-10">Could not load the book of the day.</p>
+                            )}
+                        </CardContent>
+                     </Card>
+                </section>
+
+
                 <Card className="mb-8 shadow-lg">
                     <CardContent className="p-6">
                         <Tabs defaultValue="title" className="w-full">
