@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { BarChart, DonutChart } from '@tremor/react';
-import { BarChart2, BookOpen, ThumbsUp, Users } from "lucide-react";
+import { BarChart2, BookOpen, ThumbsUp, Users, LogIn } from "lucide-react";
 import type { Book } from "@/types";
 
 type GenreData = {
@@ -12,29 +14,34 @@ type GenreData = {
 };
 
 export default function AnalyticsPage() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false); // Simulated auth state
   const [viewedBooks, setViewedBooks] = useState<Book[]>([]);
   const [genreData, setGenreData] = useState<GenreData[]>([]);
 
   useEffect(() => {
-    const storedViewedBooks = localStorage.getItem("litsense_viewed_books");
-    if (storedViewedBooks) {
-      const books: Book[] = JSON.parse(storedViewedBooks);
-      setViewedBooks(books);
+    // In a real app, you'd check a real auth state.
+    // For now, we'll just load the data if we were logged in.
+    if (isLoggedIn) {
+      const storedViewedBooks = localStorage.getItem("litsense_viewed_books");
+      if (storedViewedBooks) {
+        const books: Book[] = JSON.parse(storedViewedBooks);
+        setViewedBooks(books);
 
-      const genreCounts: { [key: string]: number } = {};
-      books.forEach(book => {
-        if (book.genre) {
-          genreCounts[book.genre] = (genreCounts[book.genre] || 0) + 1;
-        }
-      });
-      
-      const formattedData: GenreData[] = Object.entries(genreCounts)
-        .map(([name, count]) => ({ name, count }))
-        .sort((a, b) => b.count - a.count);
+        const genreCounts: { [key: string]: number } = {};
+        books.forEach(book => {
+          if (book.genre) {
+            genreCounts[book.genre] = (genreCounts[book.genre] || 0) + 1;
+          }
+        });
+        
+        const formattedData: GenreData[] = Object.entries(genreCounts)
+          .map(([name, count]) => ({ name, count }))
+          .sort((a, b) => b.count - a.count);
 
-      setGenreData(formattedData);
+        setGenreData(formattedData);
+      }
     }
-  }, []);
+  }, [isLoggedIn]);
 
   const totalBooks = viewedBooks.length;
   const averageRating = totalBooks > 0 ? viewedBooks.reduce((acc, book) => acc + (book.rating || 0), 0) / totalBooks : 0;
@@ -42,6 +49,25 @@ export default function AnalyticsPage() {
 
   const valueFormatter = (number: number) => `${Intl.NumberFormat('us').format(number).toString()}`;
 
+  if (!isLoggedIn) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] p-4 text-center">
+        <div className="p-8 border-2 border-dashed rounded-xl bg-muted/50">
+          <BarChart2 className="mx-auto h-16 w-16 text-primary" />
+          <h2 className="mt-6 text-2xl font-bold font-headline">Unlock Your Reading Analytics</h2>
+          <p className="mt-2 max-w-md text-muted-foreground">
+            Log in to see personalized stats, your most-read genres, and a deep dive into your literary journey.
+          </p>
+          <Button asChild className="mt-6">
+            <Link href="/login">
+              <LogIn className="mr-2 h-4 w-4" />
+              Login to View Analytics
+            </Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
