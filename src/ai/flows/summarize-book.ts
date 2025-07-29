@@ -53,7 +53,10 @@ const summarizeBookFlow = ai.defineFlow(
     while (retries > 0) {
       try {
         const {output} = await summarizeBookPrompt(input);
-        return output!;
+        if (output) {
+          return output;
+        }
+        throw new Error('No output from prompt.');
       } catch (e: any) {
         if (e.cause?.status === 503 && retries > 0) {
           console.log("Model is overloaded, retrying...");
