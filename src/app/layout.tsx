@@ -25,6 +25,7 @@ export default function RootLayout({
   const menuItems = [
     { path: "/", label: "Home" },
     { path: "/history", label: "History" },
+    { path: "/analytics", label: "Analytics" },
     { path: "/contact", label: "Contact" },
   ];
 

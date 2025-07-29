@@ -31,6 +31,9 @@ const BookSchema = z.object({
     .string()
     .describe('A short summary of the book, no more than 50 words.'),
   year: z.number().optional().describe('The year the book was published.'),
+  rating: z.number().describe('A plausible Goodreads-style average rating out of 5, e.g., 4.3.'),
+  reviews: z.number().describe('A plausible total number of reviews, e.g., 125034.'),
+  ageGroup: z.string().describe('The common reader age group for the book, e.g., "25-40".'),
 });
 
 const GenerateBookRecommendationsOutputSchema = z.object({
@@ -53,6 +56,11 @@ const prompt = ai.definePrompt({
   input: {schema: GenerateBookRecommendationsInputSchema},
   output: {schema: GenerateBookRecommendationsOutputSchema},
   prompt: `You are a book recommendation expert. Based on the user's search parameters, provide a list of {{{count}}} book recommendations. For each book provide a title, author, genre, publication year, and a short summary of no more than 50 words.
+
+In addition, provide plausible but fictional analytics for each book:
+- A Goodreads-style average rating out of 5 (e.g., 4.3).
+- A total number of reviews (e.g., 125034).
+- A common reader age group (e.g., "25-40").
 
 Search Parameters: {{{searchParameters}}}`,
 });

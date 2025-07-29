@@ -22,8 +22,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
 import { StarRating } from "@/components/star-rating";
 import { useToast } from "@/hooks/use-toast";
-import { Search, BookOpen, Users, Tag, Sparkles, BookHeart } from "lucide-react";
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { Search, BookOpen, Users, Tag, Sparkles, BookHeart, BarChart, Users2 } from "lucide-react";
 
 const GENRE_SUGGESTIONS = [
     "Fiction",
@@ -81,19 +80,34 @@ export default function Home() {
     }, [toast]);
 
 
-    const saveToHistory = (query: string) => {
+    const saveToSearchHistory = (query: string) => {
         if (!query) return;
         try {
-            const storedHistory = localStorage.getItem("litsense_history");
+            const storedHistory = localStorage.getItem("litsense_search_history");
             let history = storedHistory ? JSON.parse(storedHistory) : [];
             history = [query, ...history.filter((item: string) => item.toLowerCase() !== query.toLowerCase())];
             history = history.slice(0, 20);
-            localStorage.setItem("litsense_history", JSON.stringify(history));
+            localStorage.setItem("litsense_search_history", JSON.stringify(history));
         } catch (error) {
-            console.error("Could not save to history:", error);
+            console.error("Could not save to search history:", error);
         }
     };
     
+    const saveToViewedBooks = (book: Book) => {
+        if (!book) return;
+        try {
+            const storedHistory = localStorage.getItem("litsense_viewed_books");
+            let history = storedHistory ? JSON.parse(storedHistory) : [];
+            // Avoid duplicates
+            history = [book, ...history.filter((item: Book) => item.title.toLowerCase() !== book.title.toLowerCase())];
+            history = history.slice(0, 50); // Save up to 50 books
+            localStorage.setItem("litsense_viewed_books", JSON.stringify(history));
+        } catch (error) {
+            console.error("Could not save to viewed books history:", error);
+        }
+    }
+
+
     const generateCoverForBook = async (book: Book, index: number) => {
         const coverImage = await generateBookCover({ title: book.title, author: book.author, summary: book.summary });
         if (coverImage) {
@@ -114,7 +128,7 @@ export default function Home() {
                 return;
             }
 
-            saveToHistory(searchParameters);
+            saveToSearchHistory(searchParameters);
 
             try {
                 setResults([]);
@@ -123,7 +137,6 @@ export default function Home() {
                 const initialBooks = recommendations.map(book => ({
                     ...book,
                     coverImage: `https://placehold.co/300x450.png`,
-                    rating: Math.random() * 2 + 3,
                     dataAiHint: `${book.genre.toLowerCase()}`
                 }));
                 setResults(initialBooks);
@@ -165,6 +178,7 @@ export default function Home() {
 
     const handleSelectBook = async (book: Book) => {
         setSelectedBook(book);
+        saveToViewedBooks(book);
         setShortSummary('');
         setAuthorBibliography([]);
         setIsAuthorBioLoading(true);
@@ -393,8 +407,20 @@ export default function Home() {
                                     className="rounded-lg shadow-lg w-full bg-muted object-cover"
                                     data-ai-hint={selectedBook.dataAiHint}
                                 />
-                                <div className="mt-4">
+                                <div className="mt-4 flex flex-col gap-3">
                                     <StarRating rating={selectedBook.rating} />
+                                    {selectedBook.reviews && (
+                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                        <BarChart className="w-5 h-5 text-primary" />
+                                        <span>{selectedBook.reviews.toLocaleString()} Reviews</span>
+                                    </div>
+                                    )}
+                                    {selectedBook.ageGroup && (
+                                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                        <Users2 className="w-5 h-5 text-primary" />
+                                        <span>Age Group: {selectedBook.ageGroup}</span>
+                                    </div>
+                                    )}
                                 </div>
                             </div>
                             <div className="md:col-span-2">

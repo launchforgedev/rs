@@ -7,4 +7,6 @@ export type Book = {
   rating: number;
   year?: number;
   dataAiHint?: string;
+  reviews?: number;
+  ageGroup?: string;
 };

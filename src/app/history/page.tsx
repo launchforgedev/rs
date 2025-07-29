@@ -3,64 +3,121 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, History as HistoryIcon } from "lucide-react";
+import { Trash2, History as HistoryIcon, Search } from "lucide-react";
 import Link from "next/link";
+import type { Book } from "@/types";
+import Image from "next/image";
 
 export default function HistoryPage() {
-    const [history, setHistory] = useState<string[]>([]);
+    const [searchHistory, setSearchHistory] = useState<string[]>([]);
+    const [viewedBooks, setViewedBooks] = useState<Book[]>([]);
 
     useEffect(() => {
-        const storedHistory = localStorage.getItem("litsense_history");
-        if (storedHistory) {
-            setHistory(JSON.parse(storedHistory));
+        const storedSearchHistory = localStorage.getItem("litsense_search_history");
+        if (storedSearchHistory) {
+            setSearchHistory(JSON.parse(storedSearchHistory));
+        }
+        const storedViewedBooks = localStorage.getItem("litsense_viewed_books");
+        if (storedViewedBooks) {
+            setViewedBooks(JSON.parse(storedViewedBooks));
         }
     }, []);
 
-    const clearHistory = () => {
-        localStorage.removeItem("litsense_history");
-        setHistory([]);
+    const clearSearchHistory = () => {
+        localStorage.removeItem("litsense_search_history");
+        setSearchHistory([]);
+    };
+
+    const clearViewedBooks = () => {
+        localStorage.removeItem("litsense_viewed_books");
+        setViewedBooks([]);
     };
 
     return (
         <div className="p-4 sm:p-6 lg:p-8">
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold font-headline">Search History</h1>
-                {history.length > 0 && (
-                    <Button variant="destructive" size="sm" onClick={clearHistory}>
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Clear History
-                    </Button>
-                )}
-            </div>
-            {history.length > 0 ? (
-                <Card className="shadow-lg">
-                    <CardContent className="p-6">
-                        <ul className="space-y-3">
-                            {history.map((item, index) => (
-                                <li key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-md">
-                                    <div className="flex items-center gap-3">
-                                        <HistoryIcon className="w-5 h-5 text-primary" />
-                                        <span className="font-body text-lg">{item}</span>
+            <h1 className="text-3xl font-bold font-headline mb-8">History</h1>
+            <div className="grid gap-8 lg:grid-cols-2">
+                <section>
+                    <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-2xl font-bold font-headline">Recently Viewed Books</h2>
+                        {viewedBooks.length > 0 && (
+                            <Button variant="destructive" size="sm" onClick={clearViewedBooks}>
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Clear
+                            </Button>
+                        )}
+                    </div>
+                    {viewedBooks.length > 0 ? (
+                        <Card className="shadow-lg">
+                            <CardContent className="p-4 space-y-3">
+                                {viewedBooks.map((book) => (
+                                    <div key={book.title} className="flex items-center gap-4 p-2 rounded-md hover:bg-muted/50">
+                                         <Image src={book.coverImage} alt={book.title} width={40} height={60} className="rounded-sm bg-muted" />
+                                        <div className="flex-grow">
+                                            <p className="font-semibold">{book.title}</p>
+                                            <p className="text-sm text-muted-foreground">{book.author}</p>
+                                        </div>
+                                         <Button asChild variant="ghost" size="sm">
+                                            <Link href={`/?q=${encodeURIComponent(book.title)}`}>
+                                                <Search className="mr-2 h-4 w-4"/>
+                                                Find Similar
+                                            </Link>
+                                        </Button>
                                     </div>
-                                    <Button asChild variant="ghost" size="sm">
-                                        <Link href={`/?q=${encodeURIComponent(item)}`}>
-                                            Search again
-                                        </Link>
-                                    </Button>
-                                </li>
-                            ))}
-                        </ul>
-                    </CardContent>
-                </Card>
-            ) : (
-                <div className="text-center py-20">
-                    <HistoryIcon className="mx-auto h-12 w-12 text-muted-foreground" />
-                    <h3 className="mt-4 text-lg font-semibold">No history yet</h3>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                        Your past searches will appear here.
-                    </p>
-                </div>
-            )}
+                                ))}
+                            </CardContent>
+                        </Card>
+                    ) : (
+                         <div className="text-center py-10 border rounded-lg bg-card">
+                            <HistoryIcon className="mx-auto h-10 w-10 text-muted-foreground" />
+                            <h3 className="mt-4 text-md font-semibold">No viewed books yet</h3>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                                Books you select will appear here.
+                            </p>
+                        </div>
+                    )}
+                </section>
+                 <section>
+                    <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-2xl font-bold font-headline">Recent Searches</h2>
+                         {searchHistory.length > 0 && (
+                            <Button variant="destructive" size="sm" onClick={clearSearchHistory}>
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Clear
+                            </Button>
+                        )}
+                    </div>
+                     {searchHistory.length > 0 ? (
+                        <Card className="shadow-lg">
+                            <CardContent className="p-4">
+                                <ul className="space-y-2">
+                                    {searchHistory.map((item, index) => (
+                                        <li key={index} className="flex items-center justify-between p-2 bg-muted/20 rounded-md">
+                                            <div className="flex items-center gap-3">
+                                                <Search className="w-4 h-4 text-primary" />
+                                                <span className="font-body text-md">{item}</span>
+                                            </div>
+                                            <Button asChild variant="ghost" size="sm">
+                                                <Link href={`/?q=${encodeURIComponent(item)}`}>
+                                                    Search again
+                                                </Link>
+                                            </Button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </CardContent>
+                        </Card>
+                    ) : (
+                        <div className="text-center py-10 border rounded-lg bg-card">
+                            <Search className="mx-auto h-10 w-10 text-muted-foreground" />
+                            <h3 className="mt-4 text-md font-semibold">No search history</h3>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                                Your past searches will appear here.
+                            </p>
+                        </div>
+                    )}
+                </section>
+            </div>
         </div>
     );
 }

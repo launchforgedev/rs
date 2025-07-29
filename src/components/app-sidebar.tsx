@@ -11,7 +11,7 @@ import {
   SidebarFooter,
 } from "@/components/ui/sidebar";
 import { LitsenseIcon } from "@/components/icons";
-import { Home, History, Mail } from "lucide-react";
+import { Home, History, Mail, BarChart2 } from "lucide-react";
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -26,6 +26,11 @@ export function AppSidebar() {
       path: "/history",
       label: "History",
       icon: <History />,
+    },
+    {
+      path: "/analytics",
+      label: "Analytics",
+      icon: <BarChart2 />,
     },
     {
       path: "/contact",
