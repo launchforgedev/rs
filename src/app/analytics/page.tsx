@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { BarChart, DonutChart } from '@tremor/react';
 import { BarChart2, BookOpen, ThumbsUp, Users, LogIn } from "lucide-react";
 import type { Book } from "@/types";
+import { useAuth } from "@/app/layout";
 
 type GenreData = {
   name: string;
@@ -14,13 +15,13 @@ type GenreData = {
 };
 
 export default function AnalyticsPage() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false); // Simulated auth state
+  const { user } = useAuth();
+  const isLoggedIn = !!user;
+
   const [viewedBooks, setViewedBooks] = useState<Book[]>([]);
   const [genreData, setGenreData] = useState<GenreData[]>([]);
 
   useEffect(() => {
-    // In a real app, you'd check a real auth state.
-    // For now, we'll just load the data if we were logged in.
     if (isLoggedIn) {
       const storedViewedBooks = localStorage.getItem("litsense_viewed_books");
       if (storedViewedBooks) {

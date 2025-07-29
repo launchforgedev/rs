@@ -1,4 +1,6 @@
-import type { Metadata } from "next";
+
+'use client'
+
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import {
@@ -7,31 +9,60 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { LitsenseIcon } from "@/components/icons";
-import { PanelLeft, LogIn } from "lucide-react";
+import { PanelLeft, LogIn, LogOut } from "lucide-react";
 import Link from "next/link";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Button } from "@/components/ui/button";
+import { handleLogout } from "@/services/auth";
+import { useRouter } from "next/navigation";
+import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+import { onAuthStateChanged, User } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 
-export const metadata: Metadata = {
-  title: "Litsense",
-  description: "AI-Powered Book Recommendations",
+const AuthContext = createContext<{ user: User | null }>({ user: null });
+
+export const useAuth = () => {
+    return useContext(AuthContext);
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+const AuthProvider = ({ children }: { children: ReactNode }) => {
+    const [user, setUser] = useState<User | null>(null);
+
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            setUser(user);
+        });
+
+        return () => unsubscribe();
+    }, []);
+    
+    return (
+      <AuthContext.Provider value={{ user }}>{children}</AuthContext.Provider>
+    );
+};
+
+
+function AppLayout({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  const router = useRouter();
+
   const menuItems = [
     { path: "/", label: "Home" },
     { path: "/history", label: "History" },
     { path: "/analytics", label: "Analytics" },
     { path: "/contact", label: "Contact" },
   ];
+  
+  const onLogout = async () => {
+    await handleLogout();
+    router.push('/');
+  }
 
   return (
     <html lang="en" className="dark">
       <head>
+         <title>Litsense</title>
+        <meta name="description" content="AI-Powered Book Recommendations" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"
@@ -80,12 +111,19 @@ export default function RootLayout({
                  <span className="ml-2 font-headline text-2xl font-bold text-primary">Litsense</span>
             </div>
             <div className="flex items-center gap-4 md:ml-auto">
-                <Button asChild>
-                    <Link href="/login">
-                        <LogIn className="mr-2 h-4 w-4"/>
-                        Login
-                    </Link>
-                </Button>
+                {user ? (
+                   <Button onClick={onLogout} variant="outline">
+                        <LogOut className="mr-2 h-4 w-4"/>
+                        Logout
+                    </Button>
+                ) : (
+                  <Button asChild>
+                      <Link href="/login">
+                          <LogIn className="mr-2 h-4 w-4"/>
+                          Login
+                      </Link>
+                  </Button>
+                )}
             </div>
           </header>
           <main className="flex-1">{children}</main>
@@ -93,5 +131,17 @@ export default function RootLayout({
         <Toaster />
       </body>
     </html>
+  )
+}
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <AuthProvider>
+      <AppLayout>{children}</AppLayout>
+    </AuthProvider>
   );
 }

@@ -7,14 +7,17 @@ import { Trash2, History as HistoryIcon, Search, LogIn } from "lucide-react";
 import Link from "next/link";
 import type { Book } from "@/types";
 import Image from "next/image";
+import { useAuth } from "@/app/layout";
+
 
 export default function HistoryPage() {
-    const [isLoggedIn, setIsLoggedIn] = useState(false); // Simulated auth state
+    const { user } = useAuth();
+    const isLoggedIn = !!user;
+
     const [searchHistory, setSearchHistory] = useState<string[]>([]);
     const [viewedBooks, setViewedBooks] = useState<Book[]>([]);
 
     useEffect(() => {
-         // In a real app, you'd check a real auth state.
         if (isLoggedIn) {
             const storedSearchHistory = localStorage.getItem("litsense_search_history");
             if (storedSearchHistory) {
