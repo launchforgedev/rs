@@ -1,11 +1,12 @@
 
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition, useEffect, useCallback } from "react";
 import type { Book } from "@/types";
 import { generateBookRecommendations } from "@/ai/flows/generate-book-recommendations";
 import { summarizeBook } from "@/ai/flows/summarize-book";
 import { generateBookCover } from "@/ai/flows/generate-book-cover";
+import { useSearchParams } from 'next/navigation'
 
 
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { BookCard } from "@/components/book-card";
-import { LitLensIcon } from "@/components/icons";
 import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
 import { StarRating } from "@/components/star-rating";
@@ -46,7 +46,23 @@ export default function Home() {
     const [isSummaryLoading, setIsSummaryLoading] = useState(false);
     const [shortSummary, setShortSummary] = useState('');
     const { toast } = useToast();
+    const searchParams = useSearchParams();
 
+    const saveToHistory = (query: string) => {
+        if (!query) return;
+        try {
+            const storedHistory = localStorage.getItem("litsense_history");
+            let history = storedHistory ? JSON.parse(storedHistory) : [];
+            // Add new query to the beginning and remove duplicates
+            history = [query, ...history.filter((item: string) => item.toLowerCase() !== query.toLowerCase())];
+            // Keep history limited to 20 items
+            history = history.slice(0, 20);
+            localStorage.setItem("litsense_history", JSON.stringify(history));
+        } catch (error) {
+            console.error("Could not save to history:", error);
+        }
+    };
+    
     const generateCoverForBook = async (book: Book, index: number) => {
         const coverImage = await generateBookCover({ title: book.title, author: book.author, summary: book.summary });
         if (coverImage) {
@@ -74,22 +90,14 @@ export default function Home() {
         );
     };
 
-    const handleSearch = (searchType: 'title' | 'filters') => {
+    const handleSearch = useCallback((searchParameters: string) => {
         startTransition(async () => {
-            let searchParameters = "";
-            if (searchType === 'title' && titleQuery) {
-                searchParameters = `title: ${titleQuery}`;
-            } else if (searchType === 'filters') {
-                const parts = [];
-                if (authorQuery) parts.push(`author: ${authorQuery}`);
-                if (genreQuery) parts.push(`genre: ${genreQuery}`);
-                searchParameters = parts.join(', ');
-            }
-
             if (!searchParameters) {
                 toast({ variant: 'destructive', title: "Search Error", description: "Please provide search terms." });
                 return;
             }
+
+            saveToHistory(searchParameters);
 
             try {
                 setResults([]);
@@ -114,7 +122,29 @@ export default function Home() {
                 setResults([]);
             }
         });
+    }, [toast]);
+
+    const handleFormSubmit = (searchType: 'title' | 'filters') => {
+        let searchParameters = "";
+        if (searchType === 'title' && titleQuery) {
+            searchParameters = titleQuery;
+        } else if (searchType === 'filters') {
+            const parts = [];
+            if (authorQuery) parts.push(`author: ${authorQuery}`);
+            if (genreQuery) parts.push(`genre: ${genreQuery}`);
+            searchParameters = parts.join(', ');
+        }
+        handleSearch(searchParameters);
     };
+    
+    useEffect(() => {
+        const queryFromUrl = searchParams.get('q');
+        if (queryFromUrl) {
+            setTitleQuery(queryFromUrl);
+            handleSearch(queryFromUrl);
+        }
+    }, [searchParams, handleSearch]);
+
 
     const handleSelectBook = async (book: Book) => {
         setSelectedBook(book);
@@ -157,30 +187,22 @@ export default function Home() {
     };
     
     return (
-        <div className="flex flex-col items-center min-h-screen p-4 sm:p-6 lg:p-8 bg-background">
-            <header className="w-full max-w-5xl mb-8 text-center">
-                <div className="flex items-center justify-center gap-4 mb-2">
-                    <LitLensIcon className="w-12 h-12 text-primary" />
-                    <h1 className="text-4xl md:text-5xl font-headline font-bold text-primary">LitLens</h1>
-                </div>
-                <p className="text-muted-foreground font-body">Your AI-powered guide to the world of books.</p>
-            </header>
-
+        <div className="flex flex-col items-center min-h-screen p-4 sm:p-6 lg:p-8">
             <main className="w-full max-w-5xl">
                 <Card className="mb-8 shadow-lg">
                     <CardContent className="p-6">
                         <Tabs defaultValue="title" className="w-full">
                             <TabsList className="grid w-full grid-cols-2">
-                                <TabsTrigger value="title">Search by Title</TabsTrigger>
-                                <TabsTrigger value="filters">Search by Filters</TabsTrigger>
+                                <TabsTrigger value="title">Search by Title / Topic</TabsTrigger>
+                                <TabsTrigger value="filters">Advanced Search</TabsTrigger>
                             </TabsList>
                             <TabsContent value="title">
-                                <form onSubmit={(e) => { e.preventDefault(); handleSearch('title'); }} className="flex flex-col sm:flex-row gap-4 mt-4">
+                                <form onSubmit={(e) => { e.preventDefault(); handleFormSubmit('title'); }} className="flex flex-col sm:flex-row gap-4 mt-4">
                                     <div className="relative flex-grow">
                                         <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                                         <Input
                                             type="text"
-                                            placeholder="e.g., The Great Gatsby"
+                                            placeholder="e.g., The Great Gatsby, or books about space travel"
                                             className="pl-10"
                                             value={titleQuery}
                                             onChange={(e) => setTitleQuery(e.target.value)}
@@ -193,7 +215,7 @@ export default function Home() {
                                 </form>
                             </TabsContent>
                             <TabsContent value="filters">
-                                <form onSubmit={(e) => { e.preventDefault(); handleSearch('filters'); }} className="space-y-4 mt-4">
+                                <form onSubmit={(e) => { e.preventDefault(); handleFormSubmit('filters'); }} className="space-y-4 mt-4">
                                     <div className="flex flex-col sm:flex-row gap-4">
                                         <div className="relative flex-grow">
                                             <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -329,5 +351,3 @@ export default function Home() {
         </div>
     );
 }
-
-    
