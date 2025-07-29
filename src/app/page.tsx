@@ -138,28 +138,30 @@ export default function Home() {
 
 
     const handleSelectBook = async (book: Book) => {
-        setSelectedBook(book);
+        const bookWithPlaceholder = { ...book, coverImage: `https://placehold.co/300x450.png` };
+        setSelectedBook(bookWithPlaceholder);
         saveToViewedBooks(book);
         setShortSummary('');
         setAuthorBibliography([]);
-        setIsCoverLoading(true);
         setIsAuthorBioLoading(true);
 
-        // Generate cover image
-        try {
-            const coverImage = await generateBookCover({
-                title: book.title,
-                author: book.author,
-                summary: book.summary,
-            });
-            setSelectedBook(prev => prev ? { ...prev, coverImage } : null);
-        } catch (error) {
-             console.error("AI cover generation failed:", error);
-             // Use placeholder if generation fails
-             setSelectedBook(prev => prev ? { ...prev, coverImage: `https://placehold.co/300x450.png` } : null);
-        } finally {
-            setIsCoverLoading(false);
-        }
+        // NOTE: Temporarily disabling AI cover generation to avoid quota issues.
+        // The code below can be re-enabled if the quota is increased.
+        // setIsCoverLoading(true);
+        // try {
+        //     const coverImage = await generateBookCover({
+        //         title: book.title,
+        //         author: book.author,
+        //         summary: book.summary,
+        //     });
+        //     setSelectedBook(prev => prev ? { ...prev, coverImage } : null);
+        // } catch (error) {
+        //      console.error("AI cover generation failed:", error);
+        //      // Use placeholder if generation fails
+        //      setSelectedBook(prev => prev ? { ...prev, coverImage: `https://placehold.co/300x450.png` } : null);
+        // } finally {
+        //     setIsCoverLoading(false);
+        // }
 
         // Fetch author bibliography
         try {
