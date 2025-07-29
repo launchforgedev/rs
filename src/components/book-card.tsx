@@ -19,9 +19,9 @@ export function BookCard({ book, onSelect }: BookCardProps) {
            <Image
             src={book.coverImage}
             alt={`Cover of ${book.title}`}
-            layout="fill"
-            objectFit="cover"
-            className="bg-muted"
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 25vw"
+            className="object-cover bg-muted"
             data-ai-hint={book.dataAiHint}
           />
         </div>

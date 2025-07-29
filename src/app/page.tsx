@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import type { Book } from "@/types";
 import { generateBookRecommendations } from "@/ai/flows/generate-book-recommendations";
 
@@ -16,6 +16,20 @@ import Image from "next/image";
 import { StarRating } from "@/components/star-rating";
 import { useToast } from "@/hooks/use-toast";
 import { Search, BookOpen, Users, Tag } from "lucide-react";
+import { fetchBookCover } from "@/services/google-books";
+
+const GENRE_SUGGESTIONS = [
+    "Fiction",
+    "Science Fiction",
+    "Fantasy",
+    "Mystery",
+    "Thriller",
+    "Romance",
+    "Non-fiction",
+    "Biography",
+    "History",
+    "Self-help",
+];
 
 export default function Home() {
     const [isPending, startTransition] = useTransition();
@@ -27,6 +41,19 @@ export default function Home() {
     const [similarBooks, setSimilarBooks] = useState<Book[]>([]);
     const [isSimilarLoading, setIsSimilarLoading] = useState(false);
     const { toast } = useToast();
+
+    const fetchCoversForBooks = async (books: Book[]): Promise<Book[]> => {
+        const booksWithCovers = await Promise.all(
+            books.map(async (book) => {
+                const coverImage = await fetchBookCover(book.title, book.author);
+                return {
+                    ...book,
+                    coverImage: coverImage || `https://placehold.co/300x450`,
+                };
+            })
+        );
+        return booksWithCovers;
+    };
 
     const handleSearch = (searchType: 'title' | 'filters') => {
         startTransition(async () => {
@@ -54,6 +81,12 @@ export default function Home() {
                     dataAiHint: `${book.genre.toLowerCase()}`
                 }));
                 setResults(booksWithPlaceholders);
+                
+                // Fetch covers in the background
+                fetchCoversForBooks(booksWithPlaceholders).then(booksWithCovers => {
+                    setResults(booksWithCovers);
+                });
+
             } catch (error) {
                 console.error("AI search failed:", error);
                 toast({ variant: 'destructive', title: "AI Error", description: "Could not fetch recommendations. Please try again." });
@@ -75,6 +108,11 @@ export default function Home() {
                     dataAiHint: `${book.genre.toLowerCase()}`
                 }));
                 setSimilarBooks(booksWithPlaceholders);
+                
+                fetchCoversForBooks(booksWithPlaceholders).then(booksWithCovers => {
+                    setSimilarBooks(booksWithCovers);
+                });
+
             } catch (error) {
                 console.error("AI similar books failed:", error);
                 toast({ variant: 'destructive', title: "AI Error", description: "Could not fetch similar books." });
@@ -84,7 +122,7 @@ export default function Home() {
             }
         });
     };
-
+    
     return (
         <div className="flex flex-col items-center min-h-screen p-4 sm:p-6 lg:p-8 bg-background">
             <header className="w-full max-w-5xl mb-8 text-center">
@@ -142,7 +180,11 @@ export default function Home() {
                                                 className="pl-10"
                                                 value={genreQuery}
                                                 onChange={(e) => setGenreQuery(e.target.value)}
+                                                list="genre-suggestions"
                                             />
+                                            <datalist id="genre-suggestions">
+                                                {GENRE_SUGGESTIONS.map(genre => <option key={genre} value={genre} />)}
+                                            </datalist>
                                         </div>
                                     </div>
                                     <Button type="submit" disabled={isPending} className="w-full bg-primary hover:bg-primary/90">
@@ -196,7 +238,7 @@ export default function Home() {
                                     alt={`Cover of ${selectedBook.title}`}
                                     width={300}
                                     height={450}
-                                    className="rounded-lg shadow-lg w-full"
+                                    className="rounded-lg shadow-lg w-full bg-muted"
                                     data-ai-hint={selectedBook.dataAiHint}
                                 />
                                 <div className="mt-4">
@@ -216,7 +258,7 @@ export default function Home() {
                                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                         {similarBooks.map(book => (
                                           <div key={book.title} className="text-center">
-                                            <Image src={book.coverImage} alt={book.title} width={100} height={150} className="mx-auto rounded-md shadow-md" data-ai-hint={book.dataAiHint}/>
+                                            <Image src={book.coverImage} alt={book.title} width={100} height={150} className="mx-auto rounded-md shadow-md bg-muted" data-ai-hint={book.dataAiHint}/>
                                             <h4 className="text-sm font-bold mt-2 truncate">{book.title}</h4>
                                             <p className="text-xs text-muted-foreground">{book.author}</p>
                                           </div>
