@@ -31,8 +31,7 @@ export function BookCard({ book, onSelect }: BookCardProps) {
             {book.title}
           </h3>
           <p className="text-sm text-muted-foreground mb-2">{book.author}</p>
-          <p className="text-sm text-muted-foreground line-clamp-3 flex-grow">{book.summary}</p>
-          <div className="mt-4">
+          <div className="mt-auto">
             <StarRating rating={book.rating} />
           </div>
         </div>

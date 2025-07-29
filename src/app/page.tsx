@@ -46,13 +46,15 @@ export default function Home() {
     const [shortSummary, setShortSummary] = useState('');
     const { toast } = useToast();
 
-    const fetchCoversForBooks = async (books: Book[]): Promise<Book[]> => {
+    const fetchCoversForBooks = async (books: Omit<Book, 'coverImage' | 'rating'>[]): Promise<Book[]> => {
         return Promise.all(
             books.map(async (book) => {
                 const coverImage = await fetchBookCover(book.title, book.author);
                 return {
                     ...book,
                     coverImage: coverImage || `https://placehold.co/300x450.png`,
+                    rating: Math.random() * 2 + 3, // random between 3 and 5
+                    dataAiHint: `${book.genre.toLowerCase()}`
                 };
             })
         );
@@ -78,15 +80,7 @@ export default function Home() {
             try {
                 setResults([]);
                 const { recommendations } = await generateBookRecommendations({ searchParameters, count: 4 });
-                const booksWithPlaceholders = recommendations.map(book => ({
-                    ...book,
-                    coverImage: `https://placehold.co/300x450.png`,
-                    rating: Math.random() * 2 + 3, // random between 3 and 5
-                    dataAiHint: `${book.genre.toLowerCase()}`
-                }));
-                setResults(booksWithPlaceholders);
-                
-                const booksWithCovers = await fetchCoversForBooks(booksWithPlaceholders);
+                const booksWithCovers = await fetchCoversForBooks(recommendations);
                 setResults(booksWithCovers);
 
             } catch (error) {
@@ -105,14 +99,7 @@ export default function Home() {
 
         try {
             const { recommendations } = await generateBookRecommendations({ searchParameters: `a book similar to ${book.title} by ${book.author}`, count: 3 });
-            const booksWithPlaceholders = recommendations.map(book => ({
-                ...book,
-                coverImage: `https://placehold.co/300x450.png`,
-                rating: Math.random() * 2 + 3,
-                dataAiHint: `${book.genre.toLowerCase()}`
-            }));
-            
-            const booksWithCovers = await fetchCoversForBooks(booksWithPlaceholders);
+            const booksWithCovers = await fetchCoversForBooks(recommendations);
             setSimilarBooks(booksWithCovers);
 
         } catch (error) {
@@ -236,7 +223,7 @@ export default function Home() {
                     ) : results.length > 0 ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                             {results.map((book) => (
-                                <BookCard key={book.title} book={book} onSelect={() => handleSelectBook(book)} />
+                                <BookCard key={`${book.title}-${book.author}`} book={book} onSelect={() => handleSelectBook(book)} />
                             ))}
                         </div>
                     ) : (
@@ -299,7 +286,7 @@ export default function Home() {
                                 ) : similarBooks.length > 0 ? (
                                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                         {similarBooks.map(book => (
-                                          <div key={book.title} className="text-center">
+                                          <div key={`${book.title}-${book.author}`} className="text-center">
                                             <Image src={book.coverImage} alt={book.title} width={100} height={150} className="mx-auto rounded-md shadow-md bg-muted object-cover h-36 w-auto" data-ai-hint={book.dataAiHint}/>
                                             <h4 className="text-sm font-bold mt-2 truncate">{book.title}</h4>
                                             <p className="text-xs text-muted-foreground">{book.author}</p>
@@ -316,5 +303,6 @@ export default function Home() {
             )}
         </div>
     );
+}
 
     
