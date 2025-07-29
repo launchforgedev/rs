@@ -30,6 +30,7 @@ const BookSchema = z.object({
   summary: z
     .string()
     .describe('A short summary of the book, no more than 50 words.'),
+  year: z.number().optional().describe('The year the book was published.'),
 });
 
 const GenerateBookRecommendationsOutputSchema = z.object({
@@ -51,7 +52,7 @@ const prompt = ai.definePrompt({
   name: 'generateBookRecommendationsPrompt',
   input: {schema: GenerateBookRecommendationsInputSchema},
   output: {schema: GenerateBookRecommendationsOutputSchema},
-  prompt: `You are a book recommendation expert. Based on the user's search parameters, provide a list of {{{count}}} book recommendations. For each book provide a title, author, genre and a short summary of no more than 50 words.
+  prompt: `You are a book recommendation expert. Based on the user's search parameters, provide a list of {{{count}}} book recommendations. For each book provide a title, author, genre, publication year, and a short summary of no more than 50 words.
 
 Search Parameters: {{{searchParameters}}}`,
 });

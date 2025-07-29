@@ -7,6 +7,7 @@ import { generateBookRecommendations } from "@/ai/flows/generate-book-recommenda
 import { summarizeBook } from "@/ai/flows/summarize-book";
 import { generateBookCover } from "@/ai/flows/generate-book-cover";
 import { generateBookOfTheDay, BookOfTheDay } from "@/ai/flows/generate-book-of-the-day";
+import { getAuthorBibliography } from "@/ai/flows/get-author-bibliography";
 import { useSearchParams } from 'next/navigation'
 
 
@@ -16,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookCard } from "@/components/book-card";
+import { AuthorTimeline } from "@/components/author-timeline";
 import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
 import { StarRating } from "@/components/star-rating";
@@ -36,6 +38,7 @@ const GENRE_SUGGESTIONS = [
 ];
 
 type BookOfTheDayWithCover = BookOfTheDay & { coverImage: string, rating: number, dataAiHint?: string };
+type BookWithYear = Book & { year: number };
 
 export default function Home() {
     const [isPending, startTransition] = useTransition();
@@ -44,8 +47,8 @@ export default function Home() {
     const [genreQuery, setGenreQuery] = useState("");
     const [results, setResults] = useState<Book[]>([]);
     const [selectedBook, setSelectedBook] = useState<Book | null>(null);
-    const [similarBooks, setSimilarBooks] = useState<Book[]>([]);
-    const [isSimilarLoading, setIsSimilarLoading] = useState(false);
+    const [authorBibliography, setAuthorBibliography] = useState<BookWithYear[]>([]);
+    const [isAuthorBioLoading, setIsAuthorBioLoading] = useState(false);
     const [isSummaryLoading, setIsSummaryLoading] = useState(false);
     const [shortSummary, setShortSummary] = useState('');
     const [bookOfTheDay, setBookOfTheDay] = useState<BookOfTheDayWithCover | null>(null);
@@ -82,9 +85,7 @@ export default function Home() {
         try {
             const storedHistory = localStorage.getItem("litsense_history");
             let history = storedHistory ? JSON.parse(storedHistory) : [];
-            // Add new query to the beginning and remove duplicates
             history = [query, ...history.filter((item: string) => item.toLowerCase() !== query.toLowerCase())];
-            // Keep history limited to 20 items
             history = history.slice(0, 20);
             localStorage.setItem("litsense_history", JSON.stringify(history));
         } catch (error) {
@@ -104,20 +105,6 @@ export default function Home() {
             });
         }
     };
-    
-    const generateCoversForSimilarBooks = async (books: Omit<Book, 'coverImage' | 'rating'>[]): Promise<Book[]> => {
-        return Promise.all(
-            books.map(async (book) => {
-                const coverImage = await generateBookCover({ title: book.title, author: book.author, summary: book.summary });
-                return {
-                    ...book,
-                    coverImage: coverImage || `https://placehold.co/300x450.png`,
-                    rating: Math.random() * 2 + 3, // random between 3 and 5
-                    dataAiHint: `${book.genre.toLowerCase()}`
-                };
-            })
-        );
-    };
 
     const handleSearch = useCallback((searchParameters: string) => {
         startTransition(async () => {
@@ -135,7 +122,7 @@ export default function Home() {
                 const initialBooks = recommendations.map(book => ({
                     ...book,
                     coverImage: `https://placehold.co/300x450.png`,
-                    rating: Math.random() * 2 + 3, // random between 3 and 5
+                    rating: Math.random() * 2 + 3,
                     dataAiHint: `${book.genre.toLowerCase()}`
                 }));
                 setResults(initialBooks);
@@ -178,20 +165,32 @@ export default function Home() {
     const handleSelectBook = async (book: Book) => {
         setSelectedBook(book);
         setShortSummary('');
-        setSimilarBooks([]);
-        setIsSimilarLoading(true);
+        setAuthorBibliography([]);
+        setIsAuthorBioLoading(true);
 
         try {
-            const { recommendations } = await generateBookRecommendations({ searchParameters: `a book similar to ${book.title} by ${book.author}`, count: 3 });
-            const booksWithCovers = await generateCoversForSimilarBooks(recommendations);
-            setSimilarBooks(booksWithCovers);
+            const { books } = await getAuthorBibliography({ author: book.author });
+            const booksWithCoversPromises = books
+                .filter(b => b.year)
+                .map(async (b) => {
+                    const coverImage = await generateBookCover({ title: b.title, author: b.author, summary: b.summary });
+                    return {
+                        ...b,
+                        coverImage: coverImage || `https://placehold.co/300x450.png`,
+                        rating: Math.random() * 2 + 3,
+                        dataAiHint: `${b.genre.toLowerCase()}`,
+                        year: b.year,
+                    };
+                });
+            const booksWithCovers = await Promise.all(booksWithCoversPromises);
+            setAuthorBibliography(booksWithCovers as BookWithYear[]);
 
         } catch (error) {
-            console.error("AI similar books failed:", error);
-            toast({ variant: 'destructive', title: "AI Error", description: "Could not fetch similar books." });
-            setSimilarBooks([]);
+            console.error("AI author bibliography failed:", error);
+            toast({ variant: 'destructive', title: "AI Error", description: "Could not fetch author's other books." });
+            setAuthorBibliography([]);
         } finally {
-            setIsSimilarLoading(false);
+            setIsAuthorBioLoading(false);
         }
     };
 
@@ -215,6 +214,16 @@ export default function Home() {
         });
     };
     
+    const bookOfTheDayAsBook = bookOfTheDay ? {
+        title: bookOfTheDay.title,
+        author: bookOfTheDay.author,
+        genre: bookOfTheDay.genre,
+        summary: bookOfTheDay.summary,
+        coverImage: bookOfTheDay.coverImage,
+        rating: bookOfTheDay.rating,
+        dataAiHint: bookOfTheDay.dataAiHint,
+    } : null;
+
     return (
         <div className="flex flex-col items-center min-h-screen p-4 sm:p-6 lg:p-8">
             <main className="w-full max-w-5xl">
@@ -242,7 +251,7 @@ export default function Home() {
                                         </div>
                                     </div>
                                 </div>
-                            ) : bookOfTheDay ? (
+                            ) : bookOfTheDay && bookOfTheDayAsBook ? (
                                 <div className="flex flex-col md:flex-row gap-6 items-center">
                                     <Image 
                                         src={bookOfTheDay.coverImage} 
@@ -257,7 +266,7 @@ export default function Home() {
                                         <p className="text-lg text-muted-foreground mb-2">{bookOfTheDay.author}</p>
                                         <p className="italic text-primary mb-4">&quot;{bookOfTheDay.reason}&quot;</p>
                                         <p className="mb-4">{bookOfTheDay.summary}</p>
-                                        <Button onClick={() => handleSelectBook(bookOfTheDay)}>
+                                        <Button onClick={() => handleSelectBook(bookOfTheDayAsBook)}>
                                             <BookOpen className="mr-2 h-4 w-4" />
                                             Learn More
                                         </Button>
@@ -401,30 +410,7 @@ export default function Home() {
                                   {!isSummaryLoading && shortSummary && <p className="text-sm mt-2">{shortSummary}</p>}
                                 </Card>
                                 
-                                <h3 className="font-bold text-lg mb-4 mt-6 font-headline">Similar Books</h3>
-                                {isSimilarLoading ? (
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                      {[...Array(3)].map((_, i) => (
-                                          <div key={i} className="text-center">
-                                            <Skeleton className="h-36 w-24 mx-auto rounded-md" />
-                                            <Skeleton className="h-4 w-20 mx-auto mt-2" />
-                                            <Skeleton className="h-3 w-16 mx-auto mt-1" />
-                                          </div>
-                                      ))}
-                                    </div>
-                                ) : similarBooks.length > 0 ? (
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                        {similarBooks.map(book => (
-                                          <div key={`${book.title}-${book.author}`} className="text-center">
-                                            <Image src={book.coverImage} alt={book.title} width={100} height={150} className="mx-auto rounded-md shadow-md bg-muted object-cover h-36 w-auto" data-ai-hint={book.dataAiHint}/>
-                                            <h4 className="text-sm font-bold mt-2 truncate">{book.title}</h4>
-                                            <p className="text-xs text-muted-foreground">{book.author}</p>
-                                          </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <p className="text-sm text-muted-foreground">No similar books found.</p>
-                                )}
+                                <AuthorTimeline books={authorBibliography} isLoading={isAuthorBioLoading} />
                             </div>
                         </div>
                     </DialogContent>
