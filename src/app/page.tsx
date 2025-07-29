@@ -7,7 +7,7 @@ import { generateBookRecommendations } from "@/ai/flows/generate-book-recommenda
 import { summarizeBook } from "@/ai/flows/summarize-book";
 import { generateBookOfTheDay, BookOfTheDay } from "@/ai/flows/generate-book-of-the-day";
 import { getAuthorBibliography } from "@/ai/flows/get-author-bibliography";
-import { generateBookCover } from "@/ai/flows/generate-book-cover";
+import { getBookCover } from "@/services/google-books";
 import { useSearchParams } from 'next/navigation'
 
 
@@ -53,15 +53,23 @@ export default function Home() {
             setIsBookOfTheDayLoading(true);
             try {
                 const bookDetails = await generateBookOfTheDay();
+                const coverImage = await getBookCover(bookDetails.title, bookDetails.author);
                 setBookOfTheDay({ 
                     ...bookDetails, 
-                    coverImage: `https://placehold.co/300x450.png`,
+                    coverImage: coverImage,
                     rating: Math.random() * 2 + 3,
                     dataAiHint: `${bookDetails.genre.toLowerCase()}`
                 });
             } catch (error) {
                  console.error("AI book of the day failed:", error);
                  toast({ variant: 'destructive', title: "AI Error", description: "Could not fetch the Book of the Day." });
+                 const bookDetails = await generateBookOfTheDay();
+                 setBookOfTheDay({ 
+                    ...bookDetails, 
+                    coverImage: `https://placehold.co/300x450.png`,
+                    rating: Math.random() * 2 + 3,
+                    dataAiHint: `${bookDetails.genre.toLowerCase()}`
+                });
             } finally {
                 setIsBookOfTheDayLoading(false);
             }
@@ -138,30 +146,23 @@ export default function Home() {
 
 
     const handleSelectBook = async (book: Book) => {
-        const bookWithPlaceholder = { ...book, coverImage: `https://placehold.co/300x450.png` };
-        setSelectedBook(bookWithPlaceholder);
+        setSelectedBook({ ...book, coverImage: '' }); // Set initial empty cover
         saveToViewedBooks(book);
         setShortSummary('');
         setAuthorBibliography([]);
         setIsAuthorBioLoading(true);
+        setIsCoverLoading(true);
 
-        // NOTE: Temporarily disabling AI cover generation to avoid quota issues.
-        // The code below can be re-enabled if the quota is increased.
-        // setIsCoverLoading(true);
-        // try {
-        //     const coverImage = await generateBookCover({
-        //         title: book.title,
-        //         author: book.author,
-        //         summary: book.summary,
-        //     });
-        //     setSelectedBook(prev => prev ? { ...prev, coverImage } : null);
-        // } catch (error) {
-        //      console.error("AI cover generation failed:", error);
-        //      // Use placeholder if generation fails
-        //      setSelectedBook(prev => prev ? { ...prev, coverImage: `https://placehold.co/300x450.png` } : null);
-        // } finally {
-        //     setIsCoverLoading(false);
-        // }
+        try {
+            const coverImage = await getBookCover(book.title, book.author);
+            setSelectedBook(prev => prev ? { ...prev, coverImage } : null);
+        } catch (error) {
+             console.error("Google Books API failed:", error);
+             // Use placeholder if generation fails
+             setSelectedBook(prev => prev ? { ...prev, coverImage: `https://placehold.co/300x450.png` } : null);
+        } finally {
+            setIsCoverLoading(false);
+        }
 
         // Fetch author bibliography
         try {
@@ -389,7 +390,7 @@ export default function Home() {
                         <div className="grid md:grid-cols-3 gap-6 mt-4">
                             <div className="md:col-span-1">
                                 {isCoverLoading ? (
-                                    <Skeleton className="h-[450px] w-[300px] rounded-lg" />
+                                    <Skeleton className="h-[450px] w-full rounded-lg" />
                                 ) : (
                                     <Image
                                         src={selectedBook.coverImage}
