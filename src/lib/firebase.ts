@@ -1,3 +1,4 @@
+
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApp, getApps } from "firebase/app";
 import { getAuth } from "firebase/auth";
@@ -7,12 +8,12 @@ import { getAuth } from "firebase/auth";
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "REPLACE_WITH_YOUR_API_KEY",
-  authDomain: "REPLACE_WITH_YOUR_AUTH_DOMAIN",
-  projectId: "REPLACE_WITH_YOUR_PROJECT_ID",
-  storageBucket: "REPLACE_WITH_YOUR_STORAGE_BUCKET",
-  messagingSenderId: "REPLACE_WITH_YOUR_MESSAGING_SENDER_ID",
-  appId: "REPLACE_WITH_YOUR_APP_ID"
+  "projectId": "litlens-98olq",
+  "appId": "1:606100820145:web:3e0ccecfe51edc78161290",
+  "storageBucket": "litlens-98olq.firebasestorage.app",
+  "apiKey": "AIzaSyA9o_3IJAvVyaPBV5pV5hHD_tjanquSahw",
+  "authDomain": "litlens-98olq.firebaseapp.com",
+  "messagingSenderId": "606100820145"
 };
 
 // Initialize Firebase
