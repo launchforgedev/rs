@@ -2,19 +2,12 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import {
-  SidebarProvider,
-  Sidebar,
-  SidebarTrigger,
-  SidebarHeader,
-  SidebarContent,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  SidebarInset,
-  SidebarFooter,
-} from "@/components/ui/sidebar";
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { LitsenseIcon } from "@/components/icons";
-import { Home, History, Mail } from "lucide-react";
+import { PanelLeft } from "lucide-react";
 import Link from "next/link";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Button } from "@/components/ui/button";
@@ -50,30 +43,44 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased">
-        <SidebarProvider>
-          <Sidebar>
-            <AppSidebar />
-          </Sidebar>
-          <SidebarInset>
-            <header className="flex items-center p-2 sticky top-0 bg-background/80 backdrop-blur-sm z-10 border-b">
-              <div className="flex items-center md:hidden">
-                <SidebarTrigger />
-              </div>
-              <div className="flex items-center justify-center md:justify-start gap-2 flex-1 md:flex-none">
-                 <LitsenseIcon className="w-7 h-7 text-primary" />
-                 <span className="font-headline text-2xl font-bold text-primary">Litsense</span>
-              </div>
-              <nav className="hidden md:flex flex-1 justify-center items-center gap-4">
-                {menuItems.map((item) => (
-                  <Button asChild variant="link" key={item.path} className="text-foreground hover:text-primary">
+        <div className="flex min-h-screen w-full flex-col">
+          <header className="sticky top-0 flex h-16 items-center gap-4 border-b bg-background/80 px-4 md:px-6 backdrop-blur-sm z-10">
+            <nav className="hidden flex-col gap-6 text-lg font-medium md:flex md:flex-row md:items-center md:gap-5 md:text-sm lg:gap-6">
+              <Link
+                href="#"
+                className="flex items-center gap-2 text-lg font-semibold md:text-base"
+              >
+                <LitsenseIcon className="h-7 w-7 text-primary" />
+                <span className="font-headline text-2xl font-bold text-primary">Litsense</span>
+              </Link>
+              {menuItems.map((item) => (
+                  <Button asChild variant="link" key={item.path} className="text-foreground hover:text-primary text-base">
                     <Link href={item.path}>{item.label}</Link>
                   </Button>
                 ))}
-              </nav>
-            </header>
-            {children}
-          </SidebarInset>
-        </SidebarProvider>
+            </nav>
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0 md:hidden"
+                >
+                  <PanelLeft className="h-5 w-5" />
+                  <span className="sr-only">Toggle navigation menu</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left">
+                <AppSidebar />
+              </SheetContent>
+            </Sheet>
+             <div className="flex md:hidden items-center justify-center flex-1">
+                 <LitsenseIcon className="w-7 h-7 text-primary" />
+                 <span className="ml-2 font-headline text-2xl font-bold text-primary">Litsense</span>
+            </div>
+          </header>
+          <main className="flex-1">{children}</main>
+        </div>
         <Toaster />
       </body>
     </html>
