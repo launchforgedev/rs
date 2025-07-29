@@ -1,8 +1,10 @@
+
 "use client";
 
 import { useState, useTransition, useEffect } from "react";
 import type { Book } from "@/types";
 import { generateBookRecommendations } from "@/ai/flows/generate-book-recommendations";
+import { summarizeBook } from "@/ai/flows/summarize-book";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
 import { StarRating } from "@/components/star-rating";
 import { useToast } from "@/hooks/use-toast";
-import { Search, BookOpen, Users, Tag } from "lucide-react";
+import { Search, BookOpen, Users, Tag, Sparkles } from "lucide-react";
 import { fetchBookCover } from "@/services/google-books";
 
 const GENRE_SUGGESTIONS = [
@@ -40,19 +42,20 @@ export default function Home() {
     const [selectedBook, setSelectedBook] = useState<Book | null>(null);
     const [similarBooks, setSimilarBooks] = useState<Book[]>([]);
     const [isSimilarLoading, setIsSimilarLoading] = useState(false);
+    const [isSummaryLoading, setIsSummaryLoading] = useState(false);
+    const [shortSummary, setShortSummary] = useState('');
     const { toast } = useToast();
 
     const fetchCoversForBooks = async (books: Book[]): Promise<Book[]> => {
-        const booksWithCovers = await Promise.all(
+        return Promise.all(
             books.map(async (book) => {
                 const coverImage = await fetchBookCover(book.title, book.author);
                 return {
                     ...book,
-                    coverImage: coverImage || `https://placehold.co/300x450`,
+                    coverImage: coverImage || `https://placehold.co/300x450?text=No+Cover`,
                 };
             })
         );
-        return booksWithCovers;
     };
 
     const handleSearch = (searchType: 'title' | 'filters') => {
@@ -73,6 +76,7 @@ export default function Home() {
             }
 
             try {
+                setResults([]);
                 const { recommendations } = await generateBookRecommendations({ searchParameters, count: 4 });
                 const booksWithPlaceholders = recommendations.map(book => ({
                     ...book,
@@ -82,10 +86,8 @@ export default function Home() {
                 }));
                 setResults(booksWithPlaceholders);
                 
-                // Fetch covers in the background
-                fetchCoversForBooks(booksWithPlaceholders).then(booksWithCovers => {
-                    setResults(booksWithCovers);
-                });
+                const booksWithCovers = await fetchCoversForBooks(booksWithPlaceholders);
+                setResults(booksWithCovers);
 
             } catch (error) {
                 console.error("AI search failed:", error);
@@ -95,30 +97,49 @@ export default function Home() {
         });
     };
 
-    const handleSelectBook = (book: Book) => {
+    const handleSelectBook = async (book: Book) => {
         setSelectedBook(book);
+        setShortSummary('');
+        setSimilarBooks([]);
         setIsSimilarLoading(true);
-        startTransition(async () => {
-             try {
-                const { recommendations } = await generateBookRecommendations({ searchParameters: `a book similar to ${book.title} by ${book.author}`, count: 3 });
-                const booksWithPlaceholders = recommendations.map(book => ({
-                    ...book,
-                    coverImage: `https://placehold.co/300x450`,
-                    rating: Math.random() * 2 + 3, // random between 3 and 5
-                    dataAiHint: `${book.genre.toLowerCase()}`
-                }));
-                setSimilarBooks(booksWithPlaceholders);
-                
-                fetchCoversForBooks(booksWithPlaceholders).then(booksWithCovers => {
-                    setSimilarBooks(booksWithCovers);
-                });
 
+        try {
+            const { recommendations } = await generateBookRecommendations({ searchParameters: `a book similar to ${book.title} by ${book.author}`, count: 3 });
+            const booksWithPlaceholders = recommendations.map(book => ({
+                ...book,
+                coverImage: `https://placehold.co/300x450`,
+                rating: Math.random() * 2 + 3,
+                dataAiHint: `${book.genre.toLowerCase()}`
+            }));
+            
+            const booksWithCovers = await fetchCoversForBooks(booksWithPlaceholders);
+            setSimilarBooks(booksWithCovers);
+
+        } catch (error) {
+            console.error("AI similar books failed:", error);
+            toast({ variant: 'destructive', title: "AI Error", description: "Could not fetch similar books." });
+            setSimilarBooks([]);
+        } finally {
+            setIsSimilarLoading(false);
+        }
+    };
+
+    const handleGenerateShortSummary = () => {
+        if (!selectedBook) return;
+        setIsSummaryLoading(true);
+        startTransition(async () => {
+            try {
+                const { shortSummary } = await summarizeBook({
+                    title: selectedBook.title,
+                    author: selectedBook.author,
+                    summary: selectedBook.summary,
+                });
+                setShortSummary(shortSummary);
             } catch (error) {
-                console.error("AI similar books failed:", error);
-                toast({ variant: 'destructive', title: "AI Error", description: "Could not fetch similar books." });
-                setSimilarBooks([]);
+                console.error("AI summary failed:", error);
+                toast({ variant: 'destructive', title: "AI Error", description: "Could not generate a short summary." });
             } finally {
-                setIsSimilarLoading(false);
+                setIsSummaryLoading(false);
             }
         });
     };
@@ -199,7 +220,7 @@ export default function Home() {
 
                 <section>
                     <h2 className="text-2xl font-headline font-bold mb-4">Results</h2>
-                    {isPending ? (
+                    {isPending && results.length === 0 ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                             {[...Array(4)].map((_, i) => (
                                 <Card key={i}>
@@ -238,7 +259,7 @@ export default function Home() {
                                     alt={`Cover of ${selectedBook.title}`}
                                     width={300}
                                     height={450}
-                                    className="rounded-lg shadow-lg w-full bg-muted"
+                                    className="rounded-lg shadow-lg w-full bg-muted object-cover"
                                     data-ai-hint={selectedBook.dataAiHint}
                                 />
                                 <div className="mt-4">
@@ -247,18 +268,39 @@ export default function Home() {
                             </div>
                             <div className="md:col-span-2">
                                 <h3 className="font-bold text-lg mb-2 font-headline">Summary</h3>
-                                <p className="text-muted-foreground mb-6">{selectedBook.summary}</p>
+                                <p className="text-muted-foreground mb-4">{selectedBook.summary}</p>
                                 
-                                <h3 className="font-bold text-lg mb-4 font-headline">Similar Books</h3>
+                                <Card className="bg-muted/50 p-4 rounded-lg">
+                                  <div className="flex justify-between items-start">
+                                      <div>
+                                          <h4 className="font-bold font-headline text-primary">AI-Powered Short Summary</h4>
+                                          <p className="text-sm text-muted-foreground">A concise summary generated by AI.</p>
+                                      </div>
+                                      <Button variant="ghost" size="sm" onClick={handleGenerateShortSummary} disabled={isSummaryLoading}>
+                                        <Sparkles className="mr-2 h-4 w-4" />
+                                        {isSummaryLoading ? "Generating..." : "Generate"}
+                                      </Button>
+                                  </div>
+                                  {isSummaryLoading && <Skeleton className="h-12 w-full mt-2" />}
+                                  {!isSummaryLoading && shortSummary && <p className="text-sm mt-2">{shortSummary}</p>}
+                                </Card>
+                                
+                                <h3 className="font-bold text-lg mb-4 mt-6 font-headline">Similar Books</h3>
                                 {isSimilarLoading ? (
                                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                      {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-48 w-full" />)}
+                                      {[...Array(3)].map((_, i) => (
+                                          <div key={i} className="text-center">
+                                            <Skeleton className="h-36 w-24 mx-auto rounded-md" />
+                                            <Skeleton className="h-4 w-20 mx-auto mt-2" />
+                                            <Skeleton className="h-3 w-16 mx-auto mt-1" />
+                                          </div>
+                                      ))}
                                     </div>
                                 ) : similarBooks.length > 0 ? (
                                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                         {similarBooks.map(book => (
                                           <div key={book.title} className="text-center">
-                                            <Image src={book.coverImage} alt={book.title} width={100} height={150} className="mx-auto rounded-md shadow-md bg-muted" data-ai-hint={book.dataAiHint}/>
+                                            <Image src={book.coverImage} alt={book.title} width={100} height={150} className="mx-auto rounded-md shadow-md bg-muted object-cover h-36 w-auto" data-ai-hint={book.dataAiHint}/>
                                             <h4 className="text-sm font-bold mt-2 truncate">{book.title}</h4>
                                             <p className="text-xs text-muted-foreground">{book.author}</p>
                                           </div>
@@ -274,4 +316,5 @@ export default function Home() {
             )}
         </div>
     );
-}
+
+    
