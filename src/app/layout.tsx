@@ -7,7 +7,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { LitsenseIcon } from "@/components/icons";
-import { PanelLeft } from "lucide-react";
+import { PanelLeft, LogIn } from "lucide-react";
 import Link from "next/link";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Button } from "@/components/ui/button";
@@ -48,7 +48,7 @@ export default function RootLayout({
           <header className="sticky top-0 flex h-16 items-center gap-4 border-b bg-background/80 px-4 md:px-6 backdrop-blur-sm z-10">
             <nav className="hidden flex-col gap-6 text-lg font-medium md:flex md:flex-row md:items-center md:gap-5 md:text-sm lg:gap-6">
               <Link
-                href="#"
+                href="/"
                 className="flex items-center gap-2 text-lg font-semibold md:text-base"
               >
                 <LitsenseIcon className="h-7 w-7 text-primary" />
@@ -75,9 +75,17 @@ export default function RootLayout({
                 <AppSidebar />
               </SheetContent>
             </Sheet>
-             <div className="flex md:hidden items-center justify-center flex-1">
+             <div className="flex md:hidden items-center justify-start flex-1">
                  <LitsenseIcon className="w-7 h-7 text-primary" />
                  <span className="ml-2 font-headline text-2xl font-bold text-primary">Litsense</span>
+            </div>
+            <div className="flex items-center gap-4 md:ml-auto">
+                <Button asChild>
+                    <Link href="/login">
+                        <LogIn className="mr-2 h-4 w-4"/>
+                        Login
+                    </Link>
+                </Button>
             </div>
           </header>
           <main className="flex-1">{children}</main>
