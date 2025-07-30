@@ -7,6 +7,7 @@ import { generateBookRecommendations } from "@/ai/flows/generate-book-recommenda
 import { summarizeBook } from "@/ai/flows/summarize-book";
 import { generateBookOfTheDay, BookOfTheDay } from "@/ai/flows/generate-book-of-the-day";
 import { getAuthorBibliography } from "@/ai/flows/get-author-bibliography";
+import { generateBookCover } from "@/ai/flows/generate-book-cover";
 import { useSearchParams } from 'next/navigation'
 
 
@@ -47,28 +48,52 @@ export default function Home() {
     const { toast } = useToast();
     const searchParams = useSearchParams();
 
+    const fetchAndSetBookOfTheDayCover = useCallback(async (bookDetails: BookOfTheDay) => {
+        try {
+            const coverImage = await generateBookCover({
+                title: bookDetails.title,
+                author: bookDetails.author,
+                summary: bookDetails.summary,
+            });
+            setBookOfTheDay(prev => prev ? { ...prev, coverImage } : {
+                ...bookDetails,
+                coverImage,
+                rating: Math.random() * 2 + 3,
+                dataAiHint: `${bookDetails.genre.toLowerCase()}`
+            });
+        } catch (error) {
+            console.error("Failed to generate book of the day cover:", error);
+            // Fallback to placeholder if AI cover fails
+            setBookOfTheDay(prev => prev ? { ...prev, coverImage: `https://placehold.co/300x450.png` } : {
+                ...bookDetails,
+                coverImage: `https://placehold.co/300x450.png`,
+                rating: Math.random() * 2 + 3,
+                dataAiHint: `${bookDetails.genre.toLowerCase()}`
+            });
+        }
+    }, []);
+
     useEffect(() => {
         const fetchBookOfTheDay = async () => {
             setIsBookOfTheDayLoading(true);
             try {
                 const bookDetails = await generateBookOfTheDay();
-                const coverImage = `https://placehold.co/300x450.png`;
-                setBookOfTheDay({ 
-                    ...bookDetails, 
-                    coverImage: coverImage,
+                setBookOfTheDay({
+                    ...bookDetails,
+                    coverImage: "", // Start with no image
                     rating: Math.random() * 2 + 3,
                     dataAiHint: `${bookDetails.genre.toLowerCase()}`
                 });
+                fetchAndSetBookOfTheDayCover(bookDetails);
             } catch (error) {
-                 console.error("AI book of the day failed:", error);
-                 toast({ variant: 'destructive', title: "AI Error", description: "Could not fetch the Book of the Day." });
-                 // Fallback for book of the day
+                console.error("AI book of the day failed:", error);
+                toast({ variant: 'destructive', title: "AI Error", description: "Could not fetch the Book of the Day." });
             } finally {
                 setIsBookOfTheDayLoading(false);
             }
         };
         fetchBookOfTheDay();
-    }, [toast]);
+    }, [toast, fetchAndSetBookOfTheDayCover]);
 
 
     const saveToSearchHistory = (query: string) => {
@@ -110,12 +135,36 @@ export default function Home() {
 
             try {
                 const { recommendations } = await generateBookRecommendations({ searchParameters, count: 8 });
-                 const recommendationsWithCovers = recommendations.map(book => ({
+                const recommendationsWithPlaceholders = recommendations.map(book => ({
                     ...book,
-                    coverImage: `https://placehold.co/300x450.png`,
+                    coverImage: '',
                     dataAiHint: `${book.genre.toLowerCase()}`
                 }));
-                setResults(recommendationsWithCovers);
+                setResults(recommendationsWithPlaceholders);
+
+                recommendationsWithPlaceholders.forEach((book, index) => {
+                    generateBookCover({ title: book.title, author: book.author, summary: book.summary })
+                        .then(coverImage => {
+                            setResults(prevResults => {
+                                const newResults = [...prevResults];
+                                if (newResults[index]) {
+                                    newResults[index].coverImage = coverImage;
+                                }
+                                return newResults;
+                            });
+                        })
+                        .catch(error => {
+                            console.error(`Failed to generate cover for ${book.title}:`, error);
+                            // Set a placeholder on error
+                             setResults(prevResults => {
+                                const newResults = [...prevResults];
+                                if (newResults[index]) {
+                                    newResults[index].coverImage = `https://placehold.co/300x450.png`;
+                                }
+                                return newResults;
+                            });
+                        });
+                });
 
             } catch (error) {
                 console.error("AI search failed:", error);
@@ -144,13 +193,25 @@ export default function Home() {
 
 
     const handleSelectBook = async (book: Book) => {
-        setSelectedBook({ ...book, coverImage: book.coverImage || `https://placehold.co/300x450.png` });
+        setSelectedBook(book);
         saveToViewedBooks(book);
         setShortSummary('');
         setAuthorBibliography([]);
-        setIsAuthorBioLoading(true);
+        
+        if (!book.coverImage) {
+            setIsCoverLoading(true);
+             generateBookCover({ title: book.title, author: book.author, summary: book.summary })
+                .then(coverImage => {
+                    setSelectedBook(prevBook => prevBook ? { ...prevBook, coverImage } : null);
+                })
+                .catch(error => {
+                     console.error(`Failed to generate cover for dialog ${book.title}:`, error);
+                     setSelectedBook(prevBook => prevBook ? { ...prevBook, coverImage: `https://placehold.co/300x450.png` } : null);
+                })
+                .finally(() => setIsCoverLoading(false));
+        }
 
-        // Fetch author bibliography
+        setIsAuthorBioLoading(true);
         try {
             const { books } = await getAuthorBibliography({ author: book.author });
             const booksWithYear = books.filter(b => b.year).map(b => ({ ...b, year: b.year })) as BookWithYear[];
@@ -339,14 +400,18 @@ export default function Home() {
                                 </div>
                             ) : bookOfTheDay && bookOfTheDayAsBook ? (
                                 <div className="flex flex-col md:flex-row gap-8 items-center">
-                                    <Image 
-                                        src={bookOfTheDay.coverImage} 
-                                        alt={`Cover of ${bookOfTheDay.title}`}
-                                        width={200}
-                                        height={300}
-                                        className="rounded-lg shadow-2xl object-cover w-full max-w-[200px] md:w-auto bg-muted transition-transform duration-500 hover:scale-105"
-                                        data-ai-hint={bookOfTheDay.dataAiHint}
-                                    />
+                                    {bookOfTheDay.coverImage ? (
+                                        <Image 
+                                            src={bookOfTheDay.coverImage} 
+                                            alt={`Cover of ${bookOfTheDay.title}`}
+                                            width={200}
+                                            height={300}
+                                            className="rounded-lg shadow-2xl object-cover w-full max-w-[200px] md:w-auto bg-muted transition-transform duration-500 hover:scale-105"
+                                            data-ai-hint={bookOfTheDay.dataAiHint}
+                                        />
+                                    ) : (
+                                        <Skeleton className="w-[200px] h-[300px] rounded-lg" />
+                                    )}
                                     <div className="flex-1">
                                         <h3 className="font-headline text-2xl sm:text-3xl font-bold">{bookOfTheDay.title}</h3>
                                         <p className="text-lg text-muted-foreground mb-2">{bookOfTheDay.author}</p>
@@ -377,7 +442,7 @@ export default function Home() {
                             <div className="md:col-span-1">
                                 {isCoverLoading ? (
                                     <Skeleton className="h-[450px] w-full rounded-lg" />
-                                ) : (
+                                ) : selectedBook.coverImage ? (
                                     <Image
                                         src={selectedBook.coverImage}
                                         alt={`Cover of ${selectedBook.title}`}
@@ -386,6 +451,8 @@ export default function Home() {
                                         className="rounded-lg shadow-lg w-full bg-muted object-cover"
                                         data-ai-hint={selectedBook.dataAiHint}
                                     />
+                                ) : (
+                                    <Skeleton className="h-[450px] w-full rounded-lg" />
                                 )}
                                 <div className="mt-4 flex flex-col gap-3">
                                     <StarRating rating={selectedBook.rating} />

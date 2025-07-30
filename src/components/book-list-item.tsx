@@ -5,7 +5,10 @@ import type { Book } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { StarRating } from "@/components/star-rating";
 import { Badge } from "@/components/ui/badge";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, ImageIcon } from "lucide-react";
+import Image from "next/image";
+import { Skeleton } from "@/components/ui/skeleton";
+
 
 type BookListItemProps = {
   book: Book;
@@ -20,18 +23,34 @@ export function BookListItem({ book, onSelect }: BookListItemProps) {
     >
       <CardContent className="p-4">
         <div className="flex items-center gap-4">
-            <div className="flex flex-col flex-grow">
-                <div className="flex items-center gap-2 mb-2">
+            <div className="w-20 h-28 relative flex-shrink-0">
+                {book.coverImage ? (
+                    <Image 
+                        src={book.coverImage} 
+                        alt={`Cover for ${book.title}`} 
+                        fill 
+                        sizes="80px"
+                        className="object-cover rounded-md bg-muted"
+                        data-ai-hint={book.dataAiHint}
+                    />
+                ) : (
+                    <div className="w-full h-full bg-muted rounded-md flex items-center justify-center">
+                       <ImageIcon className="w-8 h-8 text-muted-foreground animate-pulse" />
+                    </div>
+                )}
+            </div>
+            <div className="flex flex-col flex-grow min-w-0">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <Badge variant="secondary">{book.genre}</Badge>
                     <StarRating rating={book.rating} />
                 </div>
-                <h3 className="font-headline font-bold text-xl leading-tight">
+                <h3 className="font-headline font-bold text-xl leading-tight truncate" title={book.title}>
                     {book.title}
                 </h3>
-                <p className="text-md text-muted-foreground mb-2">{book.author}</p>
+                <p className="text-md text-muted-foreground mb-2 truncate">{book.author}</p>
                 <p className="text-sm text-muted-foreground line-clamp-2 flex-grow">{book.summary}</p>
             </div>
-            <ChevronRight className="w-6 h-6 text-muted-foreground transition-transform group-hover:translate-x-1" />
+            <ChevronRight className="w-6 h-6 text-muted-foreground transition-transform group-hover:translate-x-1 flex-shrink-0" />
         </div>
       </CardContent>
     </Card>
