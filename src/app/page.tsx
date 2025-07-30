@@ -107,12 +107,12 @@ export default function Home() {
 
             try {
                 const { recommendations } = await generateBookRecommendations({ searchParameters, count: 8 });
-                const recommendationsWithoutImages = recommendations.map(book => ({
+                const recommendationsWithPlaceholders = recommendations.map(book => ({
                     ...book,
-                    coverImage: ``,
+                    coverImage: `https://placehold.co/80x112.png`,
                     dataAiHint: `${book.genre.toLowerCase()}`
                 }));
-                setResults(recommendationsWithoutImages);
+                setResults(recommendationsWithPlaceholders);
 
             } catch (error) {
                 console.error("AI search failed:", error);
