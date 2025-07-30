@@ -7,7 +7,6 @@ import { generateBookRecommendations } from "@/ai/flows/generate-book-recommenda
 import { summarizeBook } from "@/ai/flows/summarize-book";
 import { generateBookOfTheDay, BookOfTheDay } from "@/ai/flows/generate-book-of-the-day";
 import { getAuthorBibliography } from "@/ai/flows/get-author-bibliography";
-import { generateBookCover } from "@/ai/flows/generate-book-cover";
 import { useSearchParams } from 'next/navigation'
 
 
@@ -37,7 +36,6 @@ export default function Home() {
     const [searchQuery, setSearchQuery] = useState("");
     const [results, setResults] = useState<Book[]>([]);
     const [selectedBook, setSelectedBook] = useState<Book | null>(null);
-    const [isCoverLoading, setIsCoverLoading] = useState(false);
     const [authorBibliography, setAuthorBibliography] = useState<BookWithYear[]>([]);
     const [isAuthorBioLoading, setIsAuthorBioLoading] = useState(false);
     const [isSummaryLoading, setIsSummaryLoading] = useState(false);
@@ -48,31 +46,6 @@ export default function Home() {
     const { toast } = useToast();
     const searchParams = useSearchParams();
 
-    const fetchAndSetBookOfTheDayCover = useCallback(async (bookDetails: BookOfTheDay) => {
-        try {
-            const coverImage = await generateBookCover({
-                title: bookDetails.title,
-                author: bookDetails.author,
-                summary: bookDetails.summary,
-            });
-            setBookOfTheDay(prev => prev ? { ...prev, coverImage } : {
-                ...bookDetails,
-                coverImage,
-                rating: Math.random() * 2 + 3,
-                dataAiHint: `${bookDetails.genre.toLowerCase()}`
-            });
-        } catch (error) {
-            console.error("Failed to generate book of the day cover:", error);
-            // Fallback to placeholder if AI cover fails
-            setBookOfTheDay(prev => prev ? { ...prev, coverImage: `https://placehold.co/300x450.png` } : {
-                ...bookDetails,
-                coverImage: `https://placehold.co/300x450.png`,
-                rating: Math.random() * 2 + 3,
-                dataAiHint: `${bookDetails.genre.toLowerCase()}`
-            });
-        }
-    }, []);
-
     useEffect(() => {
         const fetchBookOfTheDay = async () => {
             setIsBookOfTheDayLoading(true);
@@ -80,11 +53,10 @@ export default function Home() {
                 const bookDetails = await generateBookOfTheDay();
                 setBookOfTheDay({
                     ...bookDetails,
-                    coverImage: "", // Start with no image
+                    coverImage: `https://placehold.co/300x450.png`,
                     rating: Math.random() * 2 + 3,
                     dataAiHint: `${bookDetails.genre.toLowerCase()}`
                 });
-                fetchAndSetBookOfTheDayCover(bookDetails);
             } catch (error) {
                 console.error("AI book of the day failed:", error);
                 toast({ variant: 'destructive', title: "AI Error", description: "Could not fetch the Book of the Day." });
@@ -93,7 +65,7 @@ export default function Home() {
             }
         };
         fetchBookOfTheDay();
-    }, [toast, fetchAndSetBookOfTheDayCover]);
+    }, [toast]);
 
 
     const saveToSearchHistory = (query: string) => {
@@ -174,19 +146,6 @@ export default function Home() {
         setShortSummary('');
         setAuthorBibliography([]);
         
-        setIsCoverLoading(true);
-        generateBookCover({ title: book.title, author: book.author, summary: book.summary })
-            .then(coverImage => {
-                setSelectedBook(prevBook => prevBook ? { ...prevBook, coverImage } : null);
-            })
-            .catch(error => {
-                    console.error(`Failed to generate cover for dialog ${book.title}:`, error);
-                    toast({ variant: 'destructive', title: "Image Generation Error", description: "Could not generate AI cover. You may have exceeded your quota." });
-                    setSelectedBook(prevBook => prevBook ? { ...prevBook, coverImage: `https://placehold.co/300x450.png` } : null);
-            })
-            .finally(() => setIsCoverLoading(false));
-        
-
         setIsAuthorBioLoading(true);
         try {
             const { books } = await getAuthorBibliography({ author: book.author });
@@ -416,9 +375,7 @@ export default function Home() {
                         </DialogHeader>
                         <div className="grid md:grid-cols-3 gap-6 mt-4">
                             <div className="md:col-span-1">
-                                {isCoverLoading ? (
-                                    <Skeleton className="h-[450px] w-full rounded-lg" />
-                                ) : selectedBook.coverImage ? (
+                                {selectedBook.coverImage ? (
                                     <Image
                                         src={selectedBook.coverImage}
                                         alt={`Cover of ${selectedBook.title}`}
@@ -474,5 +431,3 @@ export default function Home() {
         </div>
     );
 }
-
-    
