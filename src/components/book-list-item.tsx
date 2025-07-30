@@ -23,22 +23,18 @@ export function BookListItem({ book, onSelect }: BookListItemProps) {
     >
       <CardContent className="p-4">
         <div className="flex items-center gap-4">
-            <div className="w-20 h-28 relative flex-shrink-0">
-                {book.coverImage ? (
-                    <Image 
-                        src={book.coverImage} 
-                        alt={`Cover for ${book.title}`} 
-                        fill 
-                        sizes="80px"
-                        className="object-cover rounded-md bg-muted"
-                        data-ai-hint={book.dataAiHint}
-                    />
-                ) : (
-                    <div className="w-full h-full bg-muted rounded-md flex items-center justify-center">
-                       <ImageIcon className="w-8 h-8 text-muted-foreground animate-pulse" />
-                    </div>
-                )}
-            </div>
+            {book.coverImage && (
+              <div className="w-20 h-28 relative flex-shrink-0">
+                  <Image 
+                      src={book.coverImage} 
+                      alt={`Cover for ${book.title}`} 
+                      fill 
+                      sizes="80px"
+                      className="object-cover rounded-md bg-muted"
+                      data-ai-hint={book.dataAiHint}
+                  />
+              </div>
+            )}
             <div className="flex flex-col flex-grow min-w-0">
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <Badge variant="secondary">{book.genre}</Badge>

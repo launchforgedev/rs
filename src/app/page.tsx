@@ -107,12 +107,12 @@ export default function Home() {
 
             try {
                 const { recommendations } = await generateBookRecommendations({ searchParameters, count: 8 });
-                const recommendationsWithPlaceholders = recommendations.map(book => ({
+                const recommendationsWithoutImages = recommendations.map(book => ({
                     ...book,
-                    coverImage: `https://placehold.co/300x450.png`,
+                    coverImage: ``,
                     dataAiHint: `${book.genre.toLowerCase()}`
                 }));
-                setResults(recommendationsWithPlaceholders);
+                setResults(recommendationsWithoutImages);
 
             } catch (error) {
                 console.error("AI search failed:", error);
@@ -141,8 +141,13 @@ export default function Home() {
 
 
     const handleSelectBook = async (book: Book) => {
-        setSelectedBook(book);
-        saveToViewedBooks(book);
+        const bookWithCover = {
+            ...book,
+            coverImage: `https://placehold.co/300x450.png`,
+            dataAiHint: book.genre.toLowerCase()
+        };
+        setSelectedBook(bookWithCover);
+        saveToViewedBooks(bookWithCover);
         setShortSummary('');
         setAuthorBibliography([]);
         
