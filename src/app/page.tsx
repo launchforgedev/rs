@@ -137,34 +137,10 @@ export default function Home() {
                 const { recommendations } = await generateBookRecommendations({ searchParameters, count: 8 });
                 const recommendationsWithPlaceholders = recommendations.map(book => ({
                     ...book,
-                    coverImage: '',
+                    coverImage: `https://placehold.co/300x450.png`,
                     dataAiHint: `${book.genre.toLowerCase()}`
                 }));
                 setResults(recommendationsWithPlaceholders);
-
-                recommendationsWithPlaceholders.forEach((book, index) => {
-                    generateBookCover({ title: book.title, author: book.author, summary: book.summary })
-                        .then(coverImage => {
-                            setResults(prevResults => {
-                                const newResults = [...prevResults];
-                                if (newResults[index]) {
-                                    newResults[index].coverImage = coverImage;
-                                }
-                                return newResults;
-                            });
-                        })
-                        .catch(error => {
-                            console.error(`Failed to generate cover for ${book.title}:`, error);
-                            // Set a placeholder on error
-                             setResults(prevResults => {
-                                const newResults = [...prevResults];
-                                if (newResults[index]) {
-                                    newResults[index].coverImage = `https://placehold.co/300x450.png`;
-                                }
-                                return newResults;
-                            });
-                        });
-                });
 
             } catch (error) {
                 console.error("AI search failed:", error);
@@ -198,18 +174,18 @@ export default function Home() {
         setShortSummary('');
         setAuthorBibliography([]);
         
-        if (!book.coverImage) {
-            setIsCoverLoading(true);
-             generateBookCover({ title: book.title, author: book.author, summary: book.summary })
-                .then(coverImage => {
-                    setSelectedBook(prevBook => prevBook ? { ...prevBook, coverImage } : null);
-                })
-                .catch(error => {
-                     console.error(`Failed to generate cover for dialog ${book.title}:`, error);
-                     setSelectedBook(prevBook => prevBook ? { ...prevBook, coverImage: `https://placehold.co/300x450.png` } : null);
-                })
-                .finally(() => setIsCoverLoading(false));
-        }
+        setIsCoverLoading(true);
+        generateBookCover({ title: book.title, author: book.author, summary: book.summary })
+            .then(coverImage => {
+                setSelectedBook(prevBook => prevBook ? { ...prevBook, coverImage } : null);
+            })
+            .catch(error => {
+                    console.error(`Failed to generate cover for dialog ${book.title}:`, error);
+                    toast({ variant: 'destructive', title: "Image Generation Error", description: "Could not generate AI cover. You may have exceeded your quota." });
+                    setSelectedBook(prevBook => prevBook ? { ...prevBook, coverImage: `https://placehold.co/300x450.png` } : null);
+            })
+            .finally(() => setIsCoverLoading(false));
+        
 
         setIsAuthorBioLoading(true);
         try {
@@ -498,3 +474,5 @@ export default function Home() {
         </div>
     );
 }
+
+    
