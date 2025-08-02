@@ -119,7 +119,7 @@ export default function Home() {
 
             try {
                 const { recommendations } = await generateBookRecommendations({ searchParameters, count: 8 });
-                setResults(recommendations.map(r => ({...r, coverImage: undefined})));
+                setResults(recommendations.map(r => ({...r, coverImage: ''})));
 
             } catch (error) {
                 console.error("AI search failed:", error);
@@ -154,14 +154,17 @@ export default function Home() {
         setAuthorBibliography([]);
         
         setIsCoverLoading(true);
+        setIsAuthorBioLoading(true);
+
         startTransition(async () => {
+            // Fetch Cover Image
             try {
                 const coverImageUrl = await generateBookCover({
                     title: book.title,
                     author: book.author,
                     summary: book.summary,
                 });
-                setSelectedBook(prev => prev ? { ...prev, coverImage: coverImageUrl, dataAiHint: book.genre.toLowerCase() } : null);
+                setSelectedBook(prev => prev ? { ...prev, coverImage: coverImageUrl, dataAiHint: book.genre?.toLowerCase() } : null);
             } catch (error) {
                 console.error("AI cover generation failed:", error);
                 toast({ variant: 'destructive', title: "AI Cover Error", description: "Could not generate a cover image. Using placeholder." });
@@ -169,20 +172,20 @@ export default function Home() {
             } finally {
                 setIsCoverLoading(false);
             }
-        });
 
-        setIsAuthorBioLoading(true);
-        try {
-            const { books } = await getAuthorBibliography({ author: book.author });
-            const booksWithYear = books.filter(b => b.year).map(b => ({ ...b, year: b.year })) as BookWithYear[];
-            setAuthorBibliography(booksWithYear);
-        } catch (error) {
-            console.error("AI author bibliography failed:", error);
-            toast({ variant: 'destructive', title: "AI Error", description: "Could not fetch author's other books." });
-            setAuthorBibliography([]);
-        } finally {
-            setIsAuthorBioLoading(false);
-        }
+            // Fetch Author Bibliography
+            try {
+                const { books } = await getAuthorBibliography({ author: book.author });
+                const booksWithYear = books.filter(b => b.year).map(b => ({ ...b, year: b.year })) as BookWithYear[];
+                setAuthorBibliography(booksWithYear);
+            } catch (error) {
+                console.error("AI author bibliography failed:", error);
+                toast({ variant: 'destructive', title: "AI Error", description: "Could not fetch author's other books." });
+                setAuthorBibliography([]);
+            } finally {
+                setIsAuthorBioLoading(false);
+            }
+        });
     };
 
     const handleGenerateShortSummary = () => {
