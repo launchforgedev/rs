@@ -8,6 +8,7 @@ import { summarizeBook } from "@/ai/flows/summarize-book";
 import { generateBookOfTheDay, BookOfTheDay } from "@/ai/flows/generate-book-of-the-day";
 import { getAuthorBibliography } from "@/ai/flows/get-author-bibliography";
 import { useSearchParams } from 'next/navigation'
+import { generateBookCover } from "@/ai/flows/generate-book-cover";
 
 
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,7 @@ export default function Home() {
     const [authorBibliography, setAuthorBibliography] = useState<BookWithYear[]>([]);
     const [isAuthorBioLoading, setIsAuthorBioLoading] = useState(false);
     const [isSummaryLoading, setIsSummaryLoading] = useState(false);
+    const [isCoverLoading, setIsCoverLoading] = useState(false);
     const [shortSummary, setShortSummary] = useState('');
     const [bookOfTheDay, setBookOfTheDay] = useState<BookOfTheDayWithCover | null>(null);
     const [isBookOfTheDayLoading, setIsBookOfTheDayLoading] = useState(true);
@@ -136,16 +138,29 @@ export default function Home() {
 
 
     const handleSelectBook = async (book: Book) => {
-        const bookWithCover = {
-            ...book,
-            coverImage: `https://placehold.co/300x450.png`,
-            dataAiHint: book.genre.toLowerCase()
-        };
-        setSelectedBook(bookWithCover);
-        saveToViewedBooks(bookWithCover);
+        setSelectedBook({ ...book });
+        saveToViewedBooks(book);
         setShortSummary('');
         setAuthorBibliography([]);
         
+        setIsCoverLoading(true);
+        startTransition(async () => {
+            try {
+                const coverImageUrl = await generateBookCover({
+                    title: book.title,
+                    author: book.author,
+                    summary: book.summary,
+                });
+                setSelectedBook(prev => prev ? { ...prev, coverImage: coverImageUrl, dataAiHint: book.genre.toLowerCase() } : null);
+            } catch (error) {
+                console.error("AI cover generation failed:", error);
+                toast({ variant: 'destructive', title: "AI Cover Error", description: "Could not generate a cover image. Using placeholder." });
+                setSelectedBook(prev => prev ? { ...prev, coverImage: 'https://placehold.co/300x450.png' } : null);
+            } finally {
+                setIsCoverLoading(false);
+            }
+        });
+
         setIsAuthorBioLoading(true);
         try {
             const { books } = await getAuthorBibliography({ author: book.author });
@@ -185,8 +200,8 @@ export default function Home() {
         author: bookOfTheDay.author,
         genre: bookOfTheDay.genre,
         summary: bookOfTheDay.summary,
-        coverImage: bookOfTheDay.coverImage,
         rating: bookOfTheDay.rating,
+        coverImage: bookOfTheDay.coverImage,
         dataAiHint: bookOfTheDay.dataAiHint,
     } as Book : null;
 
@@ -293,7 +308,7 @@ export default function Home() {
                 </section>
                 )}
 
-                 {isPending && (
+                 {isPending && !selectedBook && (
                          <div className="space-y-4 my-20">
                             {[...Array(8)].map((_, i) => (
                                 <Card key={i} className="p-4">
@@ -375,7 +390,9 @@ export default function Home() {
                         </DialogHeader>
                         <div className="grid md:grid-cols-3 gap-6 mt-4">
                             <div className="md:col-span-1">
-                                {selectedBook.coverImage ? (
+                                {isCoverLoading ? (
+                                     <Skeleton className="h-[450px] w-full rounded-lg" />
+                                ) : selectedBook.coverImage ? (
                                     <Image
                                         src={selectedBook.coverImage}
                                         alt={`Cover of ${selectedBook.title}`}
