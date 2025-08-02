@@ -5,10 +5,7 @@ import type { Book } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { StarRating } from "@/components/star-rating";
 import { Badge } from "@/components/ui/badge";
-import { ChevronRight, ImageIcon } from "lucide-react";
-import Image from "next/image";
-import { Skeleton } from "@/components/ui/skeleton";
-
+import { ChevronRight } from "lucide-react";
 
 type BookListItemProps = {
   book: Book;
@@ -23,18 +20,6 @@ export function BookListItem({ book, onSelect }: BookListItemProps) {
     >
       <CardContent className="p-4">
         <div className="flex items-center gap-4">
-            {book.coverImage && (
-              <div className="w-20 h-28 relative flex-shrink-0">
-                  <Image 
-                      src={book.coverImage} 
-                      alt={`Cover for ${book.title}`} 
-                      fill 
-                      sizes="80px"
-                      className="object-cover rounded-md bg-muted"
-                      data-ai-hint={book.dataAiHint}
-                  />
-              </div>
-            )}
             <div className="flex flex-col flex-grow min-w-0">
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <Badge variant="secondary">{book.genre}</Badge>

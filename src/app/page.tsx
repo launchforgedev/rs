@@ -40,7 +40,7 @@ export default function Home() {
     const [authorBibliography, setAuthorBibliography] = useState<BookWithYear[]>([]);
     const [isAuthorBioLoading, setIsAuthorBioLoading] = useState(false);
     const [isSummaryLoading, setIsSummaryLoading] = useState(false);
-    const [isCoverLoading, setIsCoverLoading] = useState(false);
+    const [isDialogDetailsLoading, setIsDialogDetailsLoading] = useState(false);
     const [shortSummary, setShortSummary] = useState('');
     const [bookOfTheDay, setBookOfTheDay] = useState<BookOfTheDayWithCover | null>(null);
     const [isBookOfTheDayLoading, setIsBookOfTheDayLoading] = useState(true);
@@ -148,42 +148,37 @@ export default function Home() {
 
 
     const handleSelectBook = (book: Book) => {
-        setSelectedBook({ ...book, coverImage: '' }); // Set initial state without cover
+        setSelectedBook(book);
         saveToViewedBooks(book);
         setShortSummary('');
         setAuthorBibliography([]);
+        setIsDialogDetailsLoading(true);
         
-        setIsCoverLoading(true);
-        setIsAuthorBioLoading(true);
-
         startTransition(async () => {
-            // Fetch Cover Image
             try {
-                const coverImageUrl = await generateBookCover({
-                    title: book.title,
-                    author: book.author,
-                    summary: book.summary,
-                });
+                // Fetch all details in parallel
+                const [coverImageUrl, authorBioResult] = await Promise.all([
+                    generateBookCover({
+                        title: book.title,
+                        author: book.author,
+                        summary: book.summary,
+                    }),
+                    getAuthorBibliography({ author: book.author })
+                ]);
+
+                // Update state once with all new data
                 setSelectedBook(prev => prev ? { ...prev, coverImage: coverImageUrl, dataAiHint: book.genre?.toLowerCase() } : null);
+                
+                const booksWithYear = authorBioResult.books.filter(b => b.year).map(b => ({ ...b, year: b.year })) as BookWithYear[];
+                setAuthorBibliography(booksWithYear);
+
             } catch (error) {
-                console.error("AI cover generation failed:", error);
-                toast({ variant: 'destructive', title: "AI Cover Error", description: "Could not generate a cover image. Using placeholder." });
+                console.error("Failed to fetch book details:", error);
+                toast({ variant: 'destructive', title: "AI Error", description: "Could not fetch all book details. Using fallbacks." });
+                // Ensure there's a placeholder on error
                 setSelectedBook(prev => prev ? { ...prev, coverImage: 'https://placehold.co/300x450.png' } : null);
             } finally {
-                setIsCoverLoading(false);
-            }
-
-            // Fetch Author Bibliography
-            try {
-                const { books } = await getAuthorBibliography({ author: book.author });
-                const booksWithYear = books.filter(b => b.year).map(b => ({ ...b, year: b.year })) as BookWithYear[];
-                setAuthorBibliography(booksWithYear);
-            } catch (error) {
-                console.error("AI author bibliography failed:", error);
-                toast({ variant: 'destructive', title: "AI Error", description: "Could not fetch author's other books." });
-                setAuthorBibliography([]);
-            } finally {
-                setIsAuthorBioLoading(false);
+                setIsDialogDetailsLoading(false);
             }
         });
     };
@@ -403,7 +398,7 @@ export default function Home() {
                         </DialogHeader>
                         <div className="grid md:grid-cols-3 gap-6 mt-4">
                             <div className="md:col-span-1">
-                                {isCoverLoading ? (
+                                {isDialogDetailsLoading ? (
                                      <Skeleton className="h-[450px] w-full rounded-lg" />
                                 ) : selectedBook.coverImage ? (
                                     <Image
@@ -452,7 +447,7 @@ export default function Home() {
                                   {!isSummaryLoading && shortSummary && <p className="text-sm mt-2">{shortSummary}</p>}
                                 </Card>
                                 
-                                <AuthorTimeline books={authorBibliography} isLoading={isAuthorBioLoading} />
+                                <AuthorTimeline books={authorBibliography} isLoading={isDialogDetailsLoading} />
                             </div>
                         </div>
                     </DialogContent>
