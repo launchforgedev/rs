@@ -29,7 +29,7 @@ const GENRE_SUGGESTIONS = [
     "Horror", "Self-Help", "Comedy", "Adventure"
 ];
 
-type BookOfTheDayWithCover = BookOfTheDay & { coverImage: string, rating: number, dataAiHint?: string };
+type BookOfTheDayWithCover = BookOfTheDay & { coverImage: string; rating: number, dataAiHint?: string };
 type BookWithYear = Book & { year: number };
 
 export default function Home() {
@@ -53,12 +53,22 @@ export default function Home() {
             setIsBookOfTheDayLoading(true);
             try {
                 const bookDetails = await generateBookOfTheDay();
-                setBookOfTheDay({
+                const bookWithRating = {
                     ...bookDetails,
-                    coverImage: `https://placehold.co/300x450.png`,
                     rating: Math.random() * 2 + 3,
+                    coverImage: '',
                     dataAiHint: `${bookDetails.genre.toLowerCase()}`
+                };
+                setBookOfTheDay(bookWithRating);
+
+                const coverImageUrl = await generateBookCover({
+                    title: bookDetails.title,
+                    author: bookDetails.author,
+                    summary: bookDetails.summary,
                 });
+
+                setBookOfTheDay(prev => prev ? { ...prev, coverImage: coverImageUrl } : null);
+
             } catch (error) {
                 console.error("AI book of the day failed:", error);
                 toast({ variant: 'destructive', title: "AI Error", description: "Could not fetch the Book of the Day." });
@@ -89,7 +99,7 @@ export default function Home() {
             const storedHistory = localStorage.getItem("litsense_viewed_books");
             let history = storedHistory ? JSON.parse(storedHistory) : [];
             // Avoid duplicates
-            history = [book, ...history.filter((item: Book) => item.title.toLowerCase() !== book.title.toLowerCase())];
+            history = [{...book, coverImage: undefined}, ...history.filter((item: Book) => item.title.toLowerCase() !== book.title.toLowerCase())];
             history = history.slice(0, 50); // Save up to 50 books
             localStorage.setItem("litsense_viewed_books", JSON.stringify(history));
         } catch (error) {
@@ -109,7 +119,7 @@ export default function Home() {
 
             try {
                 const { recommendations } = await generateBookRecommendations({ searchParameters, count: 8 });
-                setResults(recommendations);
+                setResults(recommendations.map(r => ({...r, coverImage: undefined})));
 
             } catch (error) {
                 console.error("AI search failed:", error);
@@ -137,8 +147,8 @@ export default function Home() {
     }, [searchParams, handleSearch]);
 
 
-    const handleSelectBook = async (book: Book) => {
-        setSelectedBook({ ...book });
+    const handleSelectBook = (book: Book) => {
+        setSelectedBook({ ...book, coverImage: '' }); // Set initial state without cover
         saveToViewedBooks(book);
         setShortSummary('');
         setAuthorBibliography([]);
@@ -334,7 +344,7 @@ export default function Home() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            {isBookOfTheDayLoading ? (
+                            {isBookOfTheDayLoading || !bookOfTheDay ? (
                                 <div className="flex flex-col md:flex-row gap-6 items-center">
                                     <Skeleton className="w-full md:w-[200px] h-[300px] rounded-lg"/>
                                     <div className="flex-1 space-y-4">
@@ -348,7 +358,7 @@ export default function Home() {
                                         </div>
                                     </div>
                                 </div>
-                            ) : bookOfTheDay && bookOfTheDayAsBook ? (
+                            ) : bookOfTheDayAsBook ? (
                                 <div className="flex flex-col md:flex-row gap-8 items-center">
                                     {bookOfTheDay.coverImage ? (
                                         <Image 
