@@ -59,7 +59,7 @@ function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark" suppressHydrationWarning>
       <head>
          <title>Litsense</title>
         <meta name="description" content="AI-Powered Book Recommendations" />
