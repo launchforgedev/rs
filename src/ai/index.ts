@@ -10,3 +10,4 @@ import './flows/generate-book-cover';
 import './flows/generate-book-of-the-day';
 import './flows/get-author-bibliography';
 import './flows/summarize-book';
+import './flows/get-book-details';

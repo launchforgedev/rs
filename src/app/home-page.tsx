@@ -6,7 +6,7 @@ import type { Book } from "@/types";
 import { searchBooks } from "@/services/book-search";
 import { summarizeBook } from "@/ai/flows/summarize-book";
 import { generateBookOfTheDay, BookOfTheDay } from "@/ai/flows/generate-book-of-the-day";
-import { getAuthorBibliography } from "@/ai/flows/get-author-bibliography";
+import { getBookDetails } from "@/ai/flows/get-book-details";
 import { useSearchParams } from 'next/navigation'
 import { generateBookCover } from "@/ai/flows/generate-book-cover";
 
@@ -155,26 +155,20 @@ export default function HomePage() {
         
         startTransition(async () => {
             try {
-                // Fetch all details in parallel
-                const [coverImageUrl, authorBioResult] = await Promise.all([
-                    generateBookCover({
-                        title: book.title,
-                        author: book.author,
-                        summary: book.summary,
-                    }),
-                    getAuthorBibliography({ author: book.author })
-                ]);
+                const details = await getBookDetails({
+                    title: book.title,
+                    author: book.author,
+                    summary: book.summary,
+                });
 
-                // Update state once with all new data
-                setSelectedBook(prev => prev ? { ...prev, coverImage: coverImageUrl, dataAiHint: book.genre?.toLowerCase() } : null);
+                setSelectedBook(prev => prev ? { ...prev, coverImage: details.coverImage, dataAiHint: book.genre?.toLowerCase() } : null);
                 
-                const booksWithYear = authorBioResult.books.filter(b => b.year).map(b => ({ ...b, year: b.year })) as BookWithYear[];
+                const booksWithYear = details.bibliography.books.filter(b => b.year).map(b => ({ ...b, year: b.year })) as BookWithYear[];
                 setAuthorBibliography(booksWithYear);
 
             } catch (error) {
                 console.error("Failed to fetch book details:", error);
                 toast({ variant: 'destructive', title: "AI Error", description: "Could not fetch all book details. Using fallbacks." });
-                // Ensure there's a placeholder on error
                 setSelectedBook(prev => prev ? { ...prev, coverImage: 'https://placehold.co/300x450.png' } : null);
             } finally {
                 setIsDialogDetailsLoading(false);
