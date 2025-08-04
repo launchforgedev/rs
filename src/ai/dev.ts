@@ -1,8 +1,5 @@
 import { config } from 'dotenv';
 config();
 
-import '@/ai/flows/summarize-book.ts';
-import '@/ai/flows/generate-book-of-the-day.ts';
-import '@/ai/flows/get-author-bibliography.ts';
-import '@/ai/flows/generate-book-cover.ts';
-import '@/ai/flows/get-book-details.ts';
+// All flows are now removed as they are no longer in use.
+// This file is kept for potential future development.

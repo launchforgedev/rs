@@ -4,24 +4,19 @@
 import { useState, useTransition, useEffect, useCallback } from "react";
 import type { Book } from "@/types";
 import { searchBooks } from "@/services/book-search";
-import { summarizeBook } from "@/ai/flows/summarize-book";
-import { generateBookOfTheDay, BookOfTheDay } from "@/ai/flows/generate-book-of-the-day";
-import { getBookDetails } from "@/ai/flows/get-book-details";
 import { useSearchParams } from 'next/navigation'
-import { generateBookCover } from "@/ai/flows/generate-book-cover";
-
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookListItem } from "@/components/book-list-item";
-import { AuthorTimeline } from "@/components/author-timeline";
 import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
 import { StarRating } from "@/components/star-rating";
 import { useToast } from "@/hooks/use-toast";
-import { Search, BookOpen, Users, Tag, Sparkles, BookHeart, BarChart, Users2, Wand2, Compass, Library } from "lucide-react";
+import { BookOpen, BarChart, Users2, Wand2, Compass, Sparkles, Library, BookHeart } from "lucide-react";
+import { bookDatabase } from "@/data/books";
 
 const GENRE_SUGGESTIONS = [
     "Fiction", "Mystery", "Thriller", "Science Fiction", 
@@ -29,54 +24,31 @@ const GENRE_SUGGESTIONS = [
     "Horror", "Self-Help", "Comedy", "Adventure"
 ];
 
-type BookOfTheDayWithCover = BookOfTheDay & { coverImage: string; rating: number, dataAiHint?: string };
-type BookWithYear = Book & { year: number };
+type BookOfTheDay = Book;
 
 export default function HomePage() {
     const [isPending, startTransition] = useTransition();
     const [searchQuery, setSearchQuery] = useState("");
     const [results, setResults] = useState<Book[]>([]);
     const [selectedBook, setSelectedBook] = useState<Book | null>(null);
-    const [authorBibliography, setAuthorBibliography] = useState<BookWithYear[]>([]);
-    const [isSummaryLoading, setIsSummaryLoading] = useState(false);
-    const [isDialogDetailsLoading, setIsDialogDetailsLoading] = useState(false);
-    const [shortSummary, setShortSummary] = useState('');
-    const [bookOfTheDay, setBookOfTheDay] = useState<BookOfTheDayWithCover | null>(null);
+    const [bookOfTheDay, setBookOfTheDay] = useState<BookOfTheDay | null>(null);
     const [isBookOfTheDayLoading, setIsBookOfTheDayLoading] = useState(true);
 
     const { toast } = useToast();
     const searchParams = useSearchParams();
 
     useEffect(() => {
-        const fetchBookOfTheDay = async () => {
-            setIsBookOfTheDayLoading(true);
-            try {
-                const bookDetails = await generateBookOfTheDay();
-                const bookWithRating = {
-                    ...bookDetails,
-                    rating: Math.random() * 2 + 3,
-                    coverImage: '',
-                    dataAiHint: `${bookDetails.genre.toLowerCase()}`
-                };
-                setBookOfTheDay(bookWithRating);
-
-                const coverImageUrl = await generateBookCover({
-                    title: bookDetails.title,
-                    author: bookDetails.author,
-                    summary: bookDetails.summary,
-                });
-
-                setBookOfTheDay(prev => prev ? { ...prev, coverImage: coverImageUrl } : null);
-
-            } catch (error) {
-                console.error("AI book of the day failed:", error);
-                toast({ variant: 'destructive', title: "AI Error", description: "Could not fetch the Book of the Day." });
-            } finally {
-                setIsBookOfTheDayLoading(false);
-            }
+        setIsBookOfTheDayLoading(true);
+        // Select a random book from the local database
+        const randomBook = bookDatabase[Math.floor(Math.random() * bookDatabase.length)];
+        const bookWithCover: BookOfTheDay = {
+            ...randomBook,
+            coverImage: `https://placehold.co/300x450.png`,
+            dataAiHint: `${randomBook.genre.toLowerCase()}`
         };
-        fetchBookOfTheDay();
-    }, [toast]);
+        setBookOfTheDay(bookWithCover);
+        setIsBookOfTheDayLoading(false);
+    }, []);
 
 
     const saveToSearchHistory = (query: string) => {
@@ -97,8 +69,9 @@ export default function HomePage() {
         try {
             const storedHistory = localStorage.getItem("litsense_viewed_books");
             let history = storedHistory ? JSON.parse(storedHistory) : [];
-            // Avoid duplicates
-            history = [{...book, coverImage: undefined}, ...history.filter((item: Book) => item.title.toLowerCase() !== book.title.toLowerCase())];
+            // Avoid duplicates and ensure cover image is consistent
+            const bookToStore = { ...book, coverImage: `https://placehold.co/40x60.png` };
+            history = [bookToStore, ...history.filter((item: Book) => item.title.toLowerCase() !== book.title.toLowerCase())];
             history = history.slice(0, 50); // Save up to 50 books
             localStorage.setItem("litsense_viewed_books", JSON.stringify(history));
         } catch (error) {
@@ -117,7 +90,11 @@ export default function HomePage() {
             saveToSearchHistory(searchParameters);
             try {
                 const recommendations = searchBooks(searchParameters);
-                setResults(recommendations.map(r => ({...r, coverImage: ''})));
+                setResults(recommendations.map(r => ({
+                    ...r, 
+                    coverImage: `https://placehold.co/300x450.png`,
+                    dataAiHint: r.genre?.toLowerCase()
+                })));
 
             } catch (error) {
                 console.error("Search failed:", error);
@@ -147,65 +124,15 @@ export default function HomePage() {
 
 
     const handleSelectBook = (book: Book) => {
-        setSelectedBook(book);
-        saveToViewedBooks(book);
-        setShortSummary('');
-        setAuthorBibliography([]);
-        setIsDialogDetailsLoading(true);
-        
-        startTransition(async () => {
-            try {
-                const details = await getBookDetails({
-                    title: book.title,
-                    author: book.author,
-                    summary: book.summary,
-                });
-
-                setSelectedBook(prev => prev ? { ...prev, coverImage: details.coverImage, dataAiHint: book.genre?.toLowerCase() } : null);
-                
-                const booksWithYear = details.bibliography.books.filter(b => b.year).map(b => ({ ...b, year: b.year })) as BookWithYear[];
-                setAuthorBibliography(booksWithYear);
-
-            } catch (error) {
-                console.error("Failed to fetch book details:", error);
-                toast({ variant: 'destructive', title: "AI Error", description: "Could not fetch all book details. Using fallbacks." });
-                setSelectedBook(prev => prev ? { ...prev, coverImage: 'https://placehold.co/300x450.png' } : null);
-            } finally {
-                setIsDialogDetailsLoading(false);
-            }
-        });
-    };
-
-    const handleGenerateShortSummary = () => {
-        if (!selectedBook) return;
-        setIsSummaryLoading(true);
-        startTransition(async () => {
-            try {
-                const { shortSummary } = await summarizeBook({
-                    title: selectedBook.title,
-                    author: selectedBook.author,
-                    summary: selectedBook.summary,
-                });
-                setShortSummary(shortSummary);
-            } catch (error) {
-                console.error("AI summary failed:", error);
-                toast({ variant: 'destructive', title: "AI Error", description: "Could not generate a short summary." });
-            } finally {
-                setIsSummaryLoading(false);
-            }
-        });
+        const bookWithDetails = {
+            ...book,
+            coverImage: `https://placehold.co/300x450.png`,
+            dataAiHint: book.genre?.toLowerCase(),
+        };
+        setSelectedBook(bookWithDetails);
+        saveToViewedBooks(bookWithDetails);
     };
     
-    const bookOfTheDayAsBook = bookOfTheDay ? {
-        title: bookOfTheDay.title,
-        author: bookOfTheDay.author,
-        genre: bookOfTheDay.genre,
-        summary: bookOfTheDay.summary,
-        rating: bookOfTheDay.rating,
-        coverImage: bookOfTheDay.coverImage,
-        dataAiHint: bookOfTheDay.dataAiHint,
-    } as Book : null;
-
     return (
         <div className="flex flex-col items-center min-h-screen p-4 sm:p-6 lg:p-8 overflow-x-hidden">
             <main className="w-full max-w-6xl">
@@ -215,7 +142,7 @@ export default function HomePage() {
                         Find Your Next Story
                     </h1>
                     <p className="mt-4 text-lg md:text-xl max-w-2xl mx-auto text-muted-foreground">
-                        Litsense uses the power of AI to provide intelligent, personalized book recommendations. Just tell us what you're in the mood for.
+                        Instantly search our curated library of classic and popular books. Just tell us what you're in the mood for.
                     </p>
                      <form 
                         onSubmit={handleFormSubmit}
@@ -224,7 +151,7 @@ export default function HomePage() {
                         <Wand2 className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                         <Input
                             type="text"
-                            placeholder="Search by title, author, genre, or a feeling..."
+                            placeholder="Search by title, author, or genre..."
                             className="w-full pl-12 pr-28 h-14 text-lg rounded-full shadow-lg focus-visible:ring-primary focus-visible:ring-2 focus-visible:ring-offset-2 transition-shadow duration-300 focus:shadow-primary/30"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
@@ -250,21 +177,21 @@ export default function HomePage() {
                                 <Compass className="w-8 h-8" />
                             </div>
                             <h3 className="text-xl font-bold font-headline">1. Search Anything</h3>
-                            <p className="text-muted-foreground mt-2">Use simple keywords, a book title, an author, or even a feeling to start your journey.</p>
+                            <p className="text-muted-foreground mt-2">Use simple keywords, a book title, or an author to start your journey.</p>
                         </div>
                          <div className="text-center p-6 border border-dashed rounded-lg animate-fade-in-up" style={{ animationDelay: '400ms' }}>
                             <div className="flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 text-primary mx-auto mb-4">
                                 <Sparkles className="w-8 h-8" />
                             </div>
-                            <h3 className="text-xl font-bold font-headline">2. AI-Powered Discovery</h3>
-                            <p className="text-muted-foreground mt-2">Our AI analyzes your query to find hidden gems and perfect matches from a world of books.</p>
+                            <h3 className="text-xl font-bold font-headline">2. Instant Discovery</h3>
+                            <p className="text-muted-foreground mt-2">Our fast search finds perfect matches from our curated world of books.</p>
                         </div>
                          <div className="text-center p-6 border border-dashed rounded-lg animate-fade-in-up" style={{ animationDelay: '600ms' }}>
                             <div className="flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 text-primary mx-auto mb-4">
                                 <Library className="w-8 h-8" />
                             </div>
                             <h3 className="text-xl font-bold font-headline">3. Explore & Enjoy</h3>
-                            <p className="text-muted-foreground mt-2">Dive into summaries, author timelines, and find your next favorite book to read.</p>
+                            <p className="text-muted-foreground mt-2">Dive into summaries and find your next favorite book to read.</p>
                         </div>
                      </div>
                 </section>
@@ -350,33 +277,26 @@ export default function HomePage() {
                                         </div>
                                     </div>
                                 </div>
-                            ) : bookOfTheDayAsBook ? (
+                            ) : (
                                 <div className="flex flex-col md:flex-row gap-8 items-center">
-                                    {bookOfTheDay.coverImage ? (
-                                        <Image 
-                                            src={bookOfTheDay.coverImage} 
-                                            alt={`Cover of ${bookOfTheDay.title}`}
-                                            width={200}
-                                            height={300}
-                                            className="rounded-lg shadow-2xl object-cover w-full max-w-[200px] md:w-auto bg-muted transition-transform duration-500 hover:scale-105"
-                                            data-ai-hint={bookOfTheDay.dataAiHint}
-                                        />
-                                    ) : (
-                                        <Skeleton className="w-[200px] h-[300px] rounded-lg" />
-                                    )}
+                                    <Image 
+                                        src={bookOfTheDay.coverImage!} 
+                                        alt={`Cover of ${bookOfTheDay.title}`}
+                                        width={200}
+                                        height={300}
+                                        className="rounded-lg shadow-2xl object-cover w-full max-w-[200px] md:w-auto bg-muted transition-transform duration-500 hover:scale-105"
+                                        data-ai-hint={bookOfTheDay.dataAiHint}
+                                    />
                                     <div className="flex-1">
                                         <h3 className="font-headline text-2xl sm:text-3xl font-bold">{bookOfTheDay.title}</h3>
                                         <p className="text-lg text-muted-foreground mb-2">{bookOfTheDay.author}</p>
-                                        <p className="italic text-primary mb-4 text-lg">&quot;{bookOfTheDay.reason}&quot;</p>
                                         <p className="mb-4">{bookOfTheDay.summary}</p>
-                                        <Button onClick={() => handleSelectBook(bookOfTheDayAsBook)}>
+                                        <Button onClick={() => handleSelectBook(bookOfTheDay)}>
                                             <BookOpen className="mr-2 h-4 w-4" />
                                             Learn More
                                         </Button>
                                     </div>
                                 </div>
-                            ) : (
-                                <p className="text-center text-muted-foreground py-10">Could not load the book of the day.</p>
                             )}
                         </CardContent>
                      </Card>
@@ -385,27 +305,21 @@ export default function HomePage() {
 
             {selectedBook && (
                 <Dialog open={!!selectedBook} onOpenChange={(isOpen) => !isOpen && setSelectedBook(null)}>
-                    <DialogContent className="sm:max-w-3xl font-body">
+                    <DialogContent className="sm:max-w-xl font-body">
                         <DialogHeader>
                             <DialogTitle className="font-headline text-3xl text-primary">{selectedBook.title}</DialogTitle>
                             <DialogDescription>{selectedBook.author} • {selectedBook.genre}</DialogDescription>
                         </DialogHeader>
                         <div className="grid md:grid-cols-3 gap-6 mt-4">
                             <div className="md:col-span-1">
-                                {isDialogDetailsLoading ? (
-                                     <Skeleton className="h-[450px] w-full rounded-lg" />
-                                ) : selectedBook.coverImage ? (
-                                    <Image
-                                        src={selectedBook.coverImage}
-                                        alt={`Cover of ${selectedBook.title}`}
-                                        width={300}
-                                        height={450}
-                                        className="rounded-lg shadow-lg w-full bg-muted object-cover"
-                                        data-ai-hint={selectedBook.dataAiHint}
-                                    />
-                                ) : (
-                                    <Skeleton className="h-[450px] w-full rounded-lg" />
-                                )}
+                                <Image
+                                    src={selectedBook.coverImage!}
+                                    alt={`Cover of ${selectedBook.title}`}
+                                    width={300}
+                                    height={450}
+                                    className="rounded-lg shadow-lg w-full bg-muted object-cover"
+                                    data-ai-hint={selectedBook.dataAiHint}
+                                />
                                 <div className="mt-4 flex flex-col gap-3">
                                     {selectedBook.rating ? <StarRating rating={selectedBook.rating} /> : null}
                                     {selectedBook.reviews && (
@@ -426,23 +340,6 @@ export default function HomePage() {
                             <div className="md:col-span-2">
                                 <h3 className="font-bold text-lg mb-2 font-headline">Summary</h3>
                                 <p className="text-muted-foreground mb-4">{selectedBook.summary}</p>
-                                
-                                <Card className="bg-muted/50 p-4 rounded-lg">
-                                  <div className="flex justify-between items-start">
-                                      <div>
-                                          <h4 className="font-bold font-headline text-primary">AI-Powered Short Summary</h4>
-                                          <p className="text-sm text-muted-foreground">A concise summary generated by AI.</p>
-                                      </div>
-                                      <Button variant="ghost" size="sm" onClick={handleGenerateShortSummary} disabled={isSummaryLoading}>
-                                        <Sparkles className="mr-2 h-4 w-4" />
-                                        {isSummaryLoading ? "Generating..." : "Generate"}
-                                      </Button>
-                                  </div>
-                                  {isSummaryLoading && <Skeleton className="h-12 w-full mt-2" />}
-                                  {!isSummaryLoading && shortSummary && <p className="text-sm mt-2">{shortSummary}</p>}
-                                </Card>
-                                
-                                <AuthorTimeline books={authorBibliography} isLoading={isDialogDetailsLoading} />
                             </div>
                         </div>
                     </DialogContent>
