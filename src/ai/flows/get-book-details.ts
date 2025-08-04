@@ -12,7 +12,8 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { generateBookCover, GenerateBookCoverInput } from './generate-book-cover';
-import { getAuthorBibliography, GetAuthorBibliographyInput, GetAuthorBibliographyOutput, GetAuthorBibliographyOutputSchema } from './get-author-bibliography';
+import { getAuthorBibliography, GetAuthorBibliographyInput, GetAuthorBibliographyOutput } from './get-author-bibliography';
+
 
 const GetBookDetailsInputSchema = z.object({
   title: z.string().describe('The title of the book.'),
@@ -21,6 +22,22 @@ const GetBookDetailsInputSchema = z.object({
 });
 
 export type GetBookDetailsInput = z.infer<typeof GetBookDetailsInputSchema>;
+
+// Moved from get-author-bibliography.ts to resolve "use server" export error.
+const BookSchema = z.object({
+  title: z.string().describe('The title of the book.'),
+  author: z.string().describe('The author of the book.'),
+  genre: z.string().describe('The genre of the book.'),
+  summary: z
+    .string()
+    .describe('A short summary of the book, no more than 50 words.'),
+  year: z.number().describe('The year the book was published.'),
+});
+
+const GetAuthorBibliographyOutputSchema = z.object({
+  books: z.array(BookSchema).describe('A list of books by the author.'),
+});
+
 
 const GetBookDetailsOutputSchema = z.object({
     coverImage: z.string().describe('The URL of the generated book cover.'),

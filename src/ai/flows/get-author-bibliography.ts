@@ -27,7 +27,7 @@ const BookSchema = z.object({
   year: z.number().describe('The year the book was published.'),
 });
 
-export const GetAuthorBibliographyOutputSchema = z.object({
+const GetAuthorBibliographyOutputSchema = z.object({
   books: z.array(BookSchema).describe('A list of books by the author.'),
 });
 export type GetAuthorBibliographyOutput = z.infer<typeof GetAuthorBibliographyOutputSchema>;
