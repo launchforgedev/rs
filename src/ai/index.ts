@@ -8,6 +8,5 @@
 
 import './flows/generate-book-cover';
 import './flows/generate-book-of-the-day';
-import './flows/generate-book-recommendations';
 import './flows/get-author-bibliography';
 import './flows/summarize-book';

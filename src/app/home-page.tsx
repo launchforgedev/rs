@@ -3,7 +3,7 @@
 
 import { useState, useTransition, useEffect, useCallback } from "react";
 import type { Book } from "@/types";
-import { generateBookRecommendations } from "@/ai/flows/generate-book-recommendations";
+import { searchBooks } from "@/services/book-search";
 import { summarizeBook } from "@/ai/flows/summarize-book";
 import { generateBookOfTheDay, BookOfTheDay } from "@/ai/flows/generate-book-of-the-day";
 import { getAuthorBibliography } from "@/ai/flows/get-author-bibliography";
@@ -113,15 +113,15 @@ export default function HomePage() {
         }
 
         setResults([]);
-        startTransition(async () => {
+        startTransition(() => {
             saveToSearchHistory(searchParameters);
             try {
-                const { recommendations } = await generateBookRecommendations({ searchParameters, count: 8 });
+                const recommendations = searchBooks(searchParameters);
                 setResults(recommendations.map(r => ({...r, coverImage: ''})));
 
             } catch (error) {
-                console.error("AI search failed:", error);
-                toast({ variant: 'destructive', title: "AI Error", description: "Could not fetch recommendations. Please try again." });
+                console.error("Search failed:", error);
+                toast({ variant: 'destructive', title: "Search Error", description: "Could not fetch recommendations. Please try again." });
                 setResults([]);
             }
         });
@@ -419,6 +419,7 @@ export default function HomePage() {
                                         <BarChart className="w-5 h-5 text-primary" />
                                         <span>{selectedBook.reviews.toLocaleString()} Reviews</span>
                                     </div>
+
                                     )}
                                     {selectedBook.ageGroup && (
                                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
