@@ -107,15 +107,14 @@ export default function HomePage() {
     }
 
     const handleSearch = useCallback((searchParameters: string) => {
+        if (!searchParameters) {
+            toast({ variant: 'destructive', title: "Search Error", description: "Please provide search terms." });
+            return;
+        }
+
+        setResults([]);
         startTransition(async () => {
-            if (!searchParameters) {
-                toast({ variant: 'destructive', title: "Search Error", description: "Please provide search terms." });
-                return;
-            }
-
             saveToSearchHistory(searchParameters);
-            setResults([]);
-
             try {
                 const { recommendations } = await generateBookRecommendations({ searchParameters, count: 8 });
                 setResults(recommendations.map(r => ({...r, coverImage: ''})));
@@ -128,7 +127,8 @@ export default function HomePage() {
         });
     }, [toast]);
 
-    const handleFormSubmit = () => {
+    const handleFormSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
         handleSearch(searchQuery);
     };
     
@@ -224,7 +224,7 @@ export default function HomePage() {
                         Litsense uses the power of AI to provide intelligent, personalized book recommendations. Just tell us what you're in the mood for.
                     </p>
                      <form 
-                        onSubmit={(e) => { e.preventDefault(); handleFormSubmit(); }} 
+                        onSubmit={handleFormSubmit}
                         className="relative max-w-2xl mx-auto mt-8"
                     >
                         <Wand2 className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -315,8 +315,9 @@ export default function HomePage() {
                 </section>
                 )}
 
-                 {isPending && !selectedBook && (
+                 {isPending && results.length === 0 && (
                          <div className="space-y-4 my-20">
+                            <h2 className="text-3xl font-headline font-bold mb-6 text-center">Searching...</h2>
                             {[...Array(8)].map((_, i) => (
                                 <Card key={i} className="p-4">
                                     <div className="flex gap-4 items-center">

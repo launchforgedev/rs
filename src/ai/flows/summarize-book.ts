@@ -58,15 +58,18 @@ const summarizeBookFlow = ai.defineFlow(
         }
         throw new Error('No output from prompt.');
       } catch (e: any) {
-        if (e.cause?.status === 503 && retries > 0) {
-          console.log('Model is overloaded, retrying...');
+        if (e.cause?.status === 503 && retries > 1) {
+          console.log(`Model is overloaded, retrying... (${retries - 1} attempts left)`);
           retries--;
           await new Promise(resolve => setTimeout(resolve, 2000)); // wait 2 seconds
         } else {
-          throw e;
+          console.error("Failed to summarize book after multiple retries:", e);
+          // Return a fallback summary on error
+          return { shortSummary: "Could not generate a summary at this time." };
         }
       }
     }
-    throw new Error('Model is overloaded, please try again later.');
+    // This part should ideally not be reached, but it's a final guard.
+    return { shortSummary: "Could not generate a summary due to high load." };
   }
 );

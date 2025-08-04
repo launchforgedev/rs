@@ -62,15 +62,18 @@ const getAuthorBibliographyFlow = ai.defineFlow(
         }
         throw new Error('No output from prompt.');
       } catch (e: any) {
-        if (e.cause?.status === 503 && retries > 0) {
-          console.log('Model is overloaded, retrying...');
+        if (e.cause?.status === 503 && retries > 1) {
+          console.log(`Model is overloaded, retrying... (${retries - 1} attempts left)`);
           retries--;
           await new Promise(resolve => setTimeout(resolve, 2000));
         } else {
-          throw e;
+          console.error("Failed to get author bibliography after multiple retries:", e);
+          // Return empty list on failure to prevent crash
+          return { books: [] };
         }
       }
     }
-    throw new Error('Model is overloaded, please try again later.');
+     // Return empty list if all retries fail
+    return { books: [] };
   }
 );

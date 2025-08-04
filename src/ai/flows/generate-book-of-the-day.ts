@@ -56,17 +56,18 @@ const generateBookOfTheDayFlow = ai.defineFlow(
         }
         throw new Error('No output from prompt.');
       } catch (e: any) {
-        if (e.cause?.status === 503 && retries > 0) {
-          console.log('Model is overloaded, retrying...');
+        if (e.cause?.status === 503 && retries > 1) {
+          console.log(`Model is overloaded, retrying... (${retries - 1} attempts left)`);
           retries--;
           await new Promise(resolve => setTimeout(resolve, 2000)); // wait 2 seconds
         } else {
-          throw e;
+          console.error("Failed to generate book of the day after multiple retries:", e);
+          throw new Error('Failed to generate book of the day. Please try again later.');
         }
       }
     }
-    throw new Error('Model is overloaded, please try again later.');
+    // This part should ideally not be reached if the loop handles errors correctly,
+    // but it's a final guard.
+    throw new Error('Model is overloaded or an unexpected error occurred.');
   }
 );
-
-    

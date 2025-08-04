@@ -30,18 +30,19 @@ export async function generateBookCover(input: GenerateBookCoverInput): Promise<
           },
       });
 
-      if (!media.url) {
-          throw new Error('Image generation failed to produce a result.');
+      if (media?.url) {
+          return media.url;
       }
-      return media.url;
+      throw new Error('Image generation failed to produce a result.');
     } catch (e: any) {
-        if ((e.cause?.status === 503 || e.message.includes('429')) && retries > 0) {
-          console.log(`Image generation failed, retrying... (${retries} attempts left)`);
+        if ((e.cause?.status === 503 || e.message.includes('429')) && retries > 1) {
+          console.log(`Image generation failed, retrying... (${retries - 1} attempts left)`);
           retries--;
           await new Promise(resolve => setTimeout(resolve, 3000)); // wait 3 seconds
         } else {
-          // For any other error, or if retries are exhausted, throw it
-          throw e;
+          // For any other error, or if retries are exhausted, break the loop and return placeholder.
+          console.error("Image generation failed after multiple retries:", e);
+          break;
         }
       }
     }
