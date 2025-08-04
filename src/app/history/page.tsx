@@ -1,13 +1,15 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Trash2, History as HistoryIcon, Search, LogIn } from "lucide-react";
 import Link from "next/link";
 import type { Book } from "@/types";
 import Image from "next/image";
 import { useAuth } from "@/app/layout";
+import { Skeleton } from "@/components/ui/skeleton";
 
 
 export default function HistoryPage() {
@@ -16,9 +18,11 @@ export default function HistoryPage() {
 
     const [searchHistory, setSearchHistory] = useState<string[]>([]);
     const [viewedBooks, setViewedBooks] = useState<Book[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         if (isLoggedIn) {
+          try {
             const storedSearchHistory = localStorage.getItem("litsense_search_history");
             if (storedSearchHistory) {
                 setSearchHistory(JSON.parse(storedSearchHistory));
@@ -27,7 +31,13 @@ export default function HistoryPage() {
             if (storedViewedBooks) {
                 setViewedBooks(JSON.parse(storedViewedBooks));
             }
+          } catch (error) {
+              console.error("Failed to parse history from localStorage", error);
+              setSearchHistory([]);
+              setViewedBooks([]);
+          }
         }
+        setIsLoading(false);
     }, [isLoggedIn]);
 
     const clearSearchHistory = () => {
@@ -58,6 +68,46 @@ export default function HistoryPage() {
             </div>
           </div>
         );
+    }
+    
+    if (isLoading) {
+      return (
+        <div className="p-4 sm:p-6 lg:p-8">
+            <Skeleton className="h-10 w-1/4 mb-8" />
+            <div className="grid gap-8 lg:grid-cols-2">
+                <section>
+                    <Skeleton className="h-8 w-1/2 mb-4" />
+                    <Card className="shadow-lg">
+                        <CardContent className="p-4 space-y-3">
+                            {[...Array(3)].map((_, i) => (
+                                <div key={i} className="flex items-center gap-4 p-2">
+                                     <Skeleton className="w-10 h-14 rounded-sm" />
+                                    <div className="flex-grow space-y-2">
+                                        <Skeleton className="h-4 w-3/4" />
+                                        <Skeleton className="h-4 w-1/2" />
+                                    </div>
+                                    <Skeleton className="h-8 w-24" />
+                                </div>
+                            ))}
+                        </CardContent>
+                    </Card>
+                </section>
+                <section>
+                    <Skeleton className="h-8 w-1/2 mb-4" />
+                     <Card className="shadow-lg">
+                        <CardContent className="p-4 space-y-3">
+                            {[...Array(3)].map((_, i) => (
+                                <div key={i} className="flex items-center justify-between p-2">
+                                    <Skeleton className="h-6 w-1/2" />
+                                    <Skeleton className="h-8 w-24" />
+                                </div>
+                            ))}
+                        </CardContent>
+                    </Card>
+                </section>
+            </div>
+        </div>
+      )
     }
 
     return (

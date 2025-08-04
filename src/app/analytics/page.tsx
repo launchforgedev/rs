@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -8,6 +9,7 @@ import { BarChart, DonutChart } from '@tremor/react';
 import { BarChart2, BookOpen, ThumbsUp, Users, LogIn } from "lucide-react";
 import type { Book } from "@/types";
 import { useAuth } from "@/app/layout";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type GenreData = {
   name: string;
@@ -20,28 +22,36 @@ export default function AnalyticsPage() {
 
   const [viewedBooks, setViewedBooks] = useState<Book[]>([]);
   const [genreData, setGenreData] = useState<GenreData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (isLoggedIn) {
-      const storedViewedBooks = localStorage.getItem("litsense_viewed_books");
-      if (storedViewedBooks) {
-        const books: Book[] = JSON.parse(storedViewedBooks);
-        setViewedBooks(books);
+      try {
+        const storedViewedBooks = localStorage.getItem("litsense_viewed_books");
+        if (storedViewedBooks) {
+          const books: Book[] = JSON.parse(storedViewedBooks);
+          setViewedBooks(books);
 
-        const genreCounts: { [key: string]: number } = {};
-        books.forEach(book => {
-          if (book.genre) {
-            genreCounts[book.genre] = (genreCounts[book.genre] || 0) + 1;
-          }
-        });
-        
-        const formattedData: GenreData[] = Object.entries(genreCounts)
-          .map(([name, count]) => ({ name, count }))
-          .sort((a, b) => b.count - a.count);
+          const genreCounts: { [key: string]: number } = {};
+          books.forEach(book => {
+            if (book.genre) {
+              genreCounts[book.genre] = (genreCounts[book.genre] || 0) + 1;
+            }
+          });
+          
+          const formattedData: GenreData[] = Object.entries(genreCounts)
+            .map(([name, count]) => ({ name, count }))
+            .sort((a, b) => b.count - a.count);
 
-        setGenreData(formattedData);
+          setGenreData(formattedData);
+        }
+      } catch (error) {
+          console.error("Failed to parse viewed books from localStorage", error);
+          setViewedBooks([]);
+          setGenreData([]);
       }
     }
+    setIsLoading(false);
   }, [isLoggedIn]);
 
   const totalBooks = viewedBooks.length;
@@ -68,6 +78,32 @@ export default function AnalyticsPage() {
         </div>
       </div>
     );
+  }
+
+  if (isLoading) {
+    return (
+       <div className="p-4 sm:p-6 lg:p-8">
+        <Skeleton className="h-10 w-1/3 mb-6" />
+        <div className="grid gap-6 mb-8 md:grid-cols-3">
+            <Card>
+                <CardHeader><Skeleton className="h-6 w-1/2" /></CardHeader>
+                <CardContent><Skeleton className="h-8 w-1/4" /></CardContent>
+            </Card>
+            <Card>
+                <CardHeader><Skeleton className="h-6 w-1/2" /></CardHeader>
+                <CardContent><Skeleton className="h-8 w-1/4" /></CardContent>
+            </Card>
+             <Card>
+                <CardHeader><Skeleton className="h-6 w-1/2" /></CardHeader>
+                <CardContent><Skeleton className="h-8 w-1/4" /></CardContent>
+            </Card>
+        </div>
+        <Card className="shadow-lg">
+            <CardHeader><Skeleton className="h-8 w-1/4" /></CardHeader>
+            <CardContent><Skeleton className="h-64 w-full" /></CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
