@@ -79,7 +79,7 @@ export default function HistoryPage() {
                             <CardContent className="p-4 space-y-3">
                                 {viewedBooks.map((book) => (
                                     <div key={book.title} className="flex items-center gap-4 p-2 rounded-md hover:bg-muted/50">
-                                         <Image src={book.coverImage} alt={book.title} width={40} height={60} className="rounded-sm bg-muted" />
+                                         <Image src={book.coverImage || 'https://placehold.co/40x60.png'} alt={book.title} width={40} height={60} className="rounded-sm bg-muted" />
                                         <div className="flex-grow">
                                             <p className="font-semibold">{book.title}</p>
                                             <p className="text-sm text-muted-foreground">{book.author}</p>
