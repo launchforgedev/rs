@@ -12,7 +12,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { generateBookCover, GenerateBookCoverInput } from './generate-book-cover';
-import { getAuthorBibliography, GetAuthorBibliographyInput, GetAuthorBibliographyOutput } from './get-author-bibliography';
+import { getAuthorBibliography, GetAuthorBibliographyInput, GetAuthorBibliographyOutput, GetAuthorBibliographyOutputSchema } from './get-author-bibliography';
 
 const GetBookDetailsInputSchema = z.object({
   title: z.string().describe('The title of the book.'),
